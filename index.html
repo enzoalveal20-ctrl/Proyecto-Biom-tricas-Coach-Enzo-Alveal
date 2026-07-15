@@ -106,10 +106,12 @@
 
 <script>
 // CONFIGURACIÓN DE TU CONEXIÓN CON SUPABASE
-// !!! REEMPLAZA ESTOS VALORES CON LOS QUE COPIASTE EN EL PASO 3 !!!
+// Asegúrate de que este bloque aparezca UNA SOLA VEZ
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co/rest/v1/"; 
 const SUPABASE_KEY = "sb_publishable_O8NqH721eHS7tPnWB7nRcA_as2-ExB6";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Esta es la forma correcta y segura para que el navegador la reconozca al instante:    
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // Nota: Dependiendo de la librería puede ser 'supabase.createClient' o 'window.supabase.createClient'
 const startBtn = document.getElementById('startBtn');
 const alumnoInput = document.getElementById('alumnoInput');
