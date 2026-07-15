@@ -110,7 +110,7 @@
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "sb_publishable_O8NqH721eHS7tPnWB7nRcA_as2-ExB6";
     
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // Nota: Dependiendo de la librería puede ser 'supabase.createClient' o 'window.supabase.createClient'
 const startBtn = document.getElementById('startBtn');
 const alumnoInput = document.getElementById('alumnoInput');
