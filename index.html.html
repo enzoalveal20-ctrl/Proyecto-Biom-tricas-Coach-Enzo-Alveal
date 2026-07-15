@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoreo HRV en Tiempo Real</title>
+    <!-- Cargamos la librería oficial de Supabase para enviar datos fácilmente -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            background: #1e1e1e;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        input, button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 16px;
+            border-radius: 25px;
+            box-sizing: border-box;
+            border: none;
+        }
+        input {
+            background-color: #2b2b2b;
+            color: white;
+            text-align: center;
+        }
+        button {
+            background-color: #00adb5;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:disabled { background-color: #444444; cursor: not-allowed; }
+        #progressContainer {
+            margin-top: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            display: none;
+            overflow: hidden;
+        }
+        #progressBar {
+            width: 0%;
+            height: 20px;
+            background-color: #00adb5;
+            transition: width 0.1s linear;
+        }
+        #status { margin-top: 15px; font-size: 14px; color: #aaaaaa; }
+        #result {
+            margin-top: 25px;
+            padding: 15px;
+            background: #252525;
+            border-radius: 10px;
+            display: none;
+            border: 1px solid #333;
+        }
+        video, canvas { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Test de HRV Matutino</h2>
+    <p style="font-size: 13px; color: #ccc;">Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash.</p>
+    
+    <!-- Entrada para identificar al alumno -->
+    <input type="text" id="alumnoInput" placeholder="Escribe tu Nombre y Apellido" />
+    
+    <button id="startBtn">Iniciar Medición (60s)</button>
+    
+    <div id="progressContainer">
+        <div id="progressBar"></div>
+    </div>
+    
+    <div id="status">Ingresa tu nombre para comenzar.</div>
+    
+    <div id="result">
+        <h3>Resultado de hoy</h3>
+        <p id="rmssdVal" style="font-size: 28px; font-weight: bold; color: #00adb5; margin: 10px 0;"></p>
+        <p id="pulseVal" style="font-size: 15px; color: #eee;"></p>
+        <p id="cloudStatus" style="font-size: 13px; color: #28a745; font-weight: bold; margin-top: 10px;"></p>
+    </div>
+</div>
+
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas" width="20" height="20"></canvas>
+
+<script>
+// CONFIGURACIÓN DE TU CONEXIÓN CON SUPABASE
+// !!! REEMPLAZA ESTOS VALORES CON LOS QUE COPIASTE EN EL PASO 3 !!!
+const SUPABASE_URL = "https://tu-proyecto.supabase.co"; 
+const SUPABASE_KEY = "tu-api-key-anon-publica";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const startBtn = document.getElementById('startBtn');
+const alumnoInput = document.getElementById('alumnoInput');
+const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.getElementById('progressBar');
+const statusDiv = document.getElementById('status');
+const resultDiv = document.getElementById('result');
+const rmssdVal = document.getElementById('rmssdVal');
+const pulseVal = document.getElementById('pulseVal');
+const cloudStatus = document.getElementById('cloudStatus');
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+let streamRef = null;
+let animationFrameId = null;
+let ppgSignal = [];
+let timeStamps = [];
+let startTime = 0;
+const DURATION = 60000;
+
+// Recordar el nombre del alumno para que no tenga que escribirlo cada día
+document.addEventListener('DOMContentLoaded', () => {
+    const nombreGuardado = localStorage.getItem('nombre_alumno_hrv');
+    if (nombreGuardado) {
+        alumnoInput.value = nombreGuardado;
+        statusDiv.innerText = "Listo para comenzar.";
+    }
+});
+
+startBtn.addEventListener('click', startTest);
+
+async function startTest() {
+    const nombre = alumnoInput.value.trim();
+    if (!nombre) {
+        alert("Por favor, ingresa tu nombre y apellido antes de comenzar.");
+        return;
+    }
+    
+    // Guardar nombre localmente
+    localStorage.setItem('nombre_alumno_hrv', nombre);
+    
+    ppgSignal = [];
+    timeStamps = [];
+    resultDiv.style.display = 'none';
+    startBtn.disabled = true;
+    alumnoInput.disabled = true;
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    statusDiv.innerText = "Inicializando cámara y encendiendo flash...";
+
+    try {
+        streamRef = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment", frameRate: { ideal: 30 } }
+        });
+        
+        video.srcObject = streamRef;
+        const track = streamRef.getVideoTracks()[0];
+        const capabilities = track.getCapabilities();
+        if (capabilities.torch) {
+            await track.applyConstraints({ advanced: [{ torch: true }] });
+        }
+        
+        statusDiv.innerText = "Midiendo pulso... Mantén el dedo muy quieto.";
+        startTime = performance.now();
+        
+        if ('requestVideoFrameCallback' in video) {
+            video.requestVideoFrameCallback(processFrameCallback);
+        } else {
+            processFrameLegacy();
+        }
+        
+    } catch (err) {
+        alert("Error de acceso a la cámara. Recuerda usar un enlace seguro HTTPS.");
+        resetUI();
+    }
+}
+
+function processFrameCallback() {
+    if (!streamRef) return;
+    analyzeFrame();
+    const elapsed = performance.now() - startTime;
+    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
+    if (elapsed < DURATION) {
+        video.requestVideoFrameCallback(processFrameCallback);
+    } else {
+        endTest();
+    }
+}
+
+function processFrameLegacy() {
+    if (!streamRef) return;
+    analyzeFrame();
+    const elapsed = performance.now() - startTime;
+    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
+    if (elapsed < DURATION) {
+        animationFrameId = requestAnimationFrame(processFrameLegacy);
+    } else {
+        endTest();
+    }
+}
+
+function analyzeFrame() {
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let redSum = 0;
+        for (let i = 0; i < imgData.length; i += 4) {
+            redSum += imgData[i];
+        }
+        ppgSignal.push(redSum / (imgData.length / 4));
+        timeStamps.push(performance.now());
+    }
+}
+
+function resetUI() {
+    startBtn.disabled = false;
+    alumnoInput.disabled = false;
+    progressContainer.style.display = 'none';
+    statusDiv.innerText = "Listo para comenzar.";
+}
+
+function endTest() {
+    if (streamRef) {
+        streamRef.getTracks().forEach(track => track.stop());
+        streamRef = null;
+    }
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    
+    statusDiv.innerText = "Calculando variabilidad de pulso...";
+    
+    setTimeout(async () => {
+        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
+        
+        if(rrIntervals.length < 5) {
+            statusDiv.innerText = "Error: Lectura inestable. Revisa la colocación del dedo.";
+            resetUI();
+            return;
+        }
+        
+        const rmssd = calculateRMSSD(rrIntervals);
+        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
+        const bpm = Math.round(60000 / avgRR);
+        
+        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`;
+        cloudStatus.innerText = "Enviando datos de recuperación a la nube...";
+        resultDiv.style.display = 'block';
+        
+        // ENVÍO DE DATOS AUTOMÁTICO EN LA NUBE
+        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
+        
+        resetUI();
+    }, 500);
+}
+
+function calculateRRIntervals(signal, timestamps) {
+    const rrIntervals = [];
+    let lastPeakTime = null;
+    const smoothSignal = [];
+    const windowSize = 5;
+    
+    for(let i = 0; i < signal.length; i++) {
+        let start = Math.max(0, i - windowSize);
+        let end = Math.min(signal.length, i + windowSize);
+        let localMean = 0;
+        for(let j = start; j < end; j++) localMean += signal[j];
+        smoothSignal.push(signal[i] - (localMean / (end - start)));
+    }
+
+    for (let i = 1; i < smoothSignal.length - 1; i++) {
+        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > 0) {
+            const currentPeakTime = timestamps[i];
+            if (lastPeakTime !== null) {
+                const rr = currentPeakTime - lastPeakTime;
+                if (rr >= 400 && rr <= 1500) {
+                    if(rrIntervals.length > 0) {
+                        const prevRR = rrIntervals[rrIntervals.length - 1];
+                        if(Math.abs(rr - prevRR) / prevRR <= 0.20) {
+                            rrIntervals.push(rr);
+                        }
+                    } else {
+                        rrIntervals.push(rr);
+                    }
+                }
+            }
+            lastPeakTime = currentPeakTime;
+        }
+    }
+    return rrIntervals;
+}
+
+function calculateRMSSD(rrIntervals) {
+    let sumSquaredDiffs = 0;
+    for (let i = 0; i < rrIntervals.length - 1; i++) {
+        const diff = rrIntervals[i] - rrIntervals[i+1];
+        sumSquaredDiffs += diff * diff;
+    }
+    return Math.sqrt(sumSquaredDiffs / (rrIntervals.length - 1));
+}
+
+// FUNCIÓN PARA CONECTAR Y GUARDAR EN LA NUBE
+async function enviarDatosSupabase(nombre, rmssd, bpm) {
+    const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    
+    try {
+        const { data, error } = await supabase
+            .from('registros_hrv')
+            .insert([
+                { 
+                    alumno_nombre: nombre, 
+                    hrv_rmssd: parseFloat(rmssd.toFixed(1)), 
+                    pulso_bpm: parseInt(bpm), 
+                    fecha: hoy 
+                }
+            ]);
+            
+        if (error) throw error;
+        
+        cloudStatus.innerText = "✓ Sincronizado correctamente con tu Coach.";
+        cloudStatus.style.color = "#28a745";
+    } catch (err) {
+        console.error("Error al sincronizar con Supabase: ", err);
+        cloudStatus.innerText = "⚠ Guardado localmente, error de red al sincronizar.";
+        cloudStatus.style.color = "#dc3545";
+    }
+}
+</script>
+</body>
+</html>
