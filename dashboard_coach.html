@@ -62,11 +62,17 @@
     </div>
 
 <script>
-// !!! REEMPLAZA ESTOS VALORES CON LAS MISMAS CREDENCIALES DE TU SUPABASE !!!
+// 1. Declaramos las credenciales con nombres claros
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
+// 2. Inicializamos el cliente sin usar 'const' si ya está declarada de forma global,
+// o usando una asignación limpia:
+window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Para que el resto del código que usa 'supabase' no falle, simplemente reasigna:
+if (!window.supabase) {
+    window.supabase = window.supabaseClient;
+}
 
 let rawData = [];
 let athletesData = {};
