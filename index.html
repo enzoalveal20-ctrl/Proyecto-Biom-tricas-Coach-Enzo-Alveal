@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitoreo HRV en Tiempo Real</title>
-    <!-- Cargamos la librería oficial de Supabase para enviar datos fácilmente -->
+    <!-- Cargamos la librería oficial de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -82,9 +82,7 @@
     <h2>Test de HRV Matutino</h2>
     <p style="font-size: 13px; color: #ccc;">Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash.</p>
     
-    <!-- Entrada para identificar al alumno -->
     <input type="text" id="alumnoInput" placeholder="Escribe tu Nombre y Apellido" />
-    
     <button id="startBtn">Iniciar Medición (60s)</button>
     
     <div id="progressContainer">
@@ -105,178 +103,176 @@
 <canvas id="canvas" width="20" height="20"></canvas>
 
 <script>
-// CONFIGURACIÓN DE TU CONEXIÓN CON SUPABASE
+// CONFIGURACIÓN SUPABASE
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);[cite: 3]
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const startBtn = document.getElementById('startBtn');[cite: 3]
-const alumnoInput = document.getElementById('alumnoInput');[cite: 3]
-const progressContainer = document.getElementById('progressContainer');[cite: 3]
-const progressBar = document.getElementById('progressBar');[cite: 3]
-const statusDiv = document.getElementById('status');[cite: 3]
-const resultDiv = document.getElementById('result');[cite: 3]
-const rmssdVal = document.getElementById('rmssdVal');[cite: 3]
-const pulseVal = document.getElementById('pulseVal');[cite: 3]
-const cloudStatus = document.getElementById('cloudStatus');[cite: 3]
-const video = document.getElementById('video');[cite: 3]
-const canvas = document.getElementById('canvas');[cite: 3]
-const ctx = canvas.getContext('2d', { willReadFrequently: true });[cite: 3]
+const startBtn = document.getElementById('startBtn');
+const alumnoInput = document.getElementById('alumnoInput');
+const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.getElementById('progressBar');
+const statusDiv = document.getElementById('status');
+const resultDiv = document.getElementById('result');
+const rmssdVal = document.getElementById('rmssdVal');
+const pulseVal = document.getElementById('pulseVal');
+const cloudStatus = document.getElementById('cloudStatus');
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-let streamRef = null;[cite: 3]
-let animationFrameId = null;礼[cite: 3]
-let ppgSignal = [];[cite: 3]
-let timeStamps = [];[cite: 3]
-let startTime = 0;[cite: 3]
-const DURATION = 60000;[cite: 3]
+let streamRef = null;
+let animationFrameId = null;
+let ppgSignal = [];
+let timeStamps = [];
+let startTime = 0;
+const DURATION = 60000;
 
-// Recordar el nombre del alumno
 document.addEventListener('DOMContentLoaded', () => {
-    const nombreGuardado = localStorage.getItem('nombre_alumno_hrv');[cite: 3]
+    const nombreGuardado = localStorage.getItem('nombre_alumno_hrv');
     if (nombreGuardado) {
-        alumnoInput.value = nombreGuardado;[cite: 3]
-        statusDiv.innerText = "Listo para comenzar.";[cite: 3]
+        alumnoInput.value = nombreGuardado;
+        statusDiv.innerText = "Listo para comenzar.";
     }
 });
 
-startBtn.addEventListener('click', startTest);[cite: 3]
+startBtn.addEventListener('click', startTest);
 
 async function startTest() {
-    const nombre = alumnoInput.value.trim();[cite: 3]
+    const nombre = alumnoInput.value.trim();
     if (!nombre) {
-        alert("Por favor, ingresa tu nombre y apellido antes de comenzar.");[cite: 3]
+        alert("Por favor, ingresa tu nombre y apellido antes de comenzar.");
         return;
     }
     
-    localStorage.setItem('nombre_alumno_hrv', nombre);[cite: 3]
+    localStorage.setItem('nombre_alumno_hrv', nombre);
     
-    ppgSignal = [];[cite: 3]
-    timeStamps = [];[cite: 3]
-    resultDiv.style.display = 'none';[cite: 3]
-    startBtn.disabled = true;[cite: 3]
-    alumnoInput.disabled = true;[cite: 3]
-    progressContainer.style.display = 'block';[cite: 3]
-    progressBar.style.width = '0%';[cite: 3]
-    statusDiv.innerText = "Inicializando cámara y encendiendo flash...";[cite: 3]
+    ppgSignal = [];
+    timeStamps = [];
+    resultDiv.style.display = 'none';
+    startBtn.disabled = true;
+    alumnoInput.disabled = true;
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    statusDiv.innerText = "Inicializando cámara y encendiendo flash...";
 
     try {
         streamRef = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment", frameRate: { ideal: 30 } }[cite: 3]
+            video: { facingMode: "environment", frameRate: { ideal: 30 } }
         });
         
-        video.srcObject = streamRef;[cite: 3]
-        const track = streamRef.getVideoTracks()[0];[cite: 3]
-        const capabilities = track.getCapabilities();[cite: 3]
+        video.srcObject = streamRef;
+        const track = streamRef.getVideoTracks()[0];
+        const capabilities = track.getCapabilities();
         if (capabilities.torch) {
-            await track.applyConstraints({ advanced: [{ torch: true }] });[cite: 3]
+            await track.applyConstraints({ advanced: [{ torch: true }] });
         }
         
-        statusDiv.innerText = "Midiendo pulso... Mantén el dedo muy quieto.";[cite: 3]
-        startTime = performance.now();[cite: 3]
+        statusDiv.innerText = "Midiendo pulso... Mantén el dedo muy quieto.";
+        startTime = performance.now();
         
         if ('requestVideoFrameCallback' in video) {
-            video.requestVideoFrameCallback(processFrameCallback); Jaeger[cite: 3]
+            video.requestVideoFrameCallback(processFrameCallback);
         } else {
-            processFrameLegacy();[cite: 3]
+            processFrameLegacy();
         }
         
     } catch (err) {
-        alert("Error de acceso a la cámara. Recuerda usar un enlace seguro HTTPS.");[cite: 3]
-        resetUI();[cite: 3]
+        alert("Error de acceso a la cámara. Recuerda usar un enlace seguro HTTPS.");
+        resetUI();
     }
 }
 
 function processFrameCallback() {
-    if (!streamRef) return;[cite: 3]
-    analyzeFrame();[cite: 3]
-    const elapsed = performance.now() - startTime;[cite: 3]
-    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';[cite: 3]
+    if (!streamRef) return;
+    analyzeFrame();
+    const elapsed = performance.now() - startTime;
+    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
     if (elapsed < DURATION) {
-        video.requestVideoFrameCallback(processFrameCallback);[cite: 3]
+        video.requestVideoFrameCallback(processFrameCallback);
     } else {
-        endTest();[cite: 3]
+        endTest();
     }
 }
 
 function processFrameLegacy() {
-    if (!streamRef) return;[cite: 3]
-    analyzeFrame();[cite: 3]
-    const elapsed = performance.now() - startTime;[cite: 3]
-    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';[cite: 3]
+    if (!streamRef) return;
+    analyzeFrame();
+    const elapsed = performance.now() - startTime;
+    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
     if (elapsed < DURATION) {
-        animationFrameId = requestAnimationFrame(processFrameLegacy);[cite: 3]
+        animationFrameId = requestAnimationFrame(processFrameLegacy);
     } else {
-        endTest();[cite: 3]
+        endTest();
     }
 }
 
 function analyzeFrame() {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {[cite: 3]
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);[cite: 3]
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;[cite: 3]
-        let redSum = 0;[cite: 3]
-        for (let i = 0; i < imgData.length; i += 4) {[cite: 3]
-            redSum += imgData[i];[cite: 3]
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let redSum = 0;
+        for (let i = 0; i < imgData.length; i += 4) {
+            redSum += imgData[i];
         }
-        ppgSignal.push(redSum / (imgData.length / 4));[cite: 3]
-        timeStamps.push(performance.now());[cite: 3]
+        ppgSignal.push(redSum / (imgData.length / 4));
+        timeStamps.push(performance.now());
     }
 }
 
 function resetUI() {
-    startBtn.disabled = false;[cite: 3]
-    alumnoInput.disabled = false;[cite: 3]
-    progressContainer.style.display = 'none';[cite: 3]
+    startBtn.disabled = false;
+    alumnoInput.disabled = false;
+    progressContainer.style.display = 'none';
 }
 
 function endTest() {
-    if (streamRef) {[cite: 3]
-        streamRef.getTracks().forEach(track => track.stop());[cite: 3]
-        streamRef = null;[cite: 3]
+    if (streamRef) {
+        streamRef.getTracks().forEach(track => track.stop());
+        streamRef = null;
     }
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);[cite: 3]
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
     
-    statusDiv.innerText = "Calculando variabilidad de pulso...";[cite: 3]
+    statusDiv.innerText = "Calculando variabilidad de pulso...";
     
     setTimeout(async () => {
-        // Diagnóstico directo en pantalla si el array falla
-        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);[cite: 3]
+        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
         
-        if(rrIntervals.length < 5) {[cite: 3]
-            statusDiv.innerText = `Error: Lectura inestable (Se procesaron ${rrIntervals.length} latidos). Por favor, repite el test cubriendo bien la cámara.`;
+        if(rrIntervals.length < 5) {
+            statusDiv.innerText = `Error: Lectura inestable (Se procesaron ${rrIntervals.length} latidos limpios). Por favor, repite el test cubriendo bien la cámara y el flash.`;
             startBtn.disabled = false;
             alumnoInput.disabled = false;
             progressContainer.style.display = 'none';
             return;
         }
         
-        const rmssd = calculateRMSSD(rrIntervals);[cite: 3]
-        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;[cite: 3]
-        const bpm = Math.round(60000 / avgRR);[cite: 3]
+        const rmssd = calculateRMSSD(rrIntervals);
+        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
+        const bpm = Math.round(60000 / avgRR);
         
-        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;[cite: 3]
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`;[cite: 3]
-        cloudStatus.innerText = "Enviando datos de recuperación a la nube...";[cite: 3]
-        resultDiv.style.display = 'block';[cite: 3]
+        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`;
+        cloudStatus.innerText = "Enviando datos de recuperación a la nube...";
+        resultDiv.style.display = 'block';
         
-        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);[cite: 3]
-        resetUI();[cite: 3]
-    }, 500);[cite: 3]
+        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
+        resetUI();
+    }, 500);
 }
 
 function calculateRRIntervals(signal, timestamps) {
     const rrIntervals = []; 
     let lastPeakTime = null; 
     const smoothSignal = []; 
-    const windowSize = 7;[cite: 3]
+    const windowSize = 7;
     
-    for(let i = 0; i < signal.length; i++) {[cite: 3]
-        let start = Math.max(0, i - windowSize);[cite: 3]
-        let end = Math.min(signal.length, i + windowSize);[cite: 3]
-        let localMean = 0;[cite: 3]
-        for(let j = start; j < end; j++) localMean += signal[j];[cite: 3]
-        smoothSignal.push(signal[i] - (localMean / (end - start)));[cite: 3]
+    for(let i = 0; i < signal.length; i++) {
+        let start = Math.max(0, i - windowSize);
+        let end = Math.min(signal.length, i + windowSize);
+        let localMean = 0;
+        for(let j = start; j < end; j++) localMean += signal[j];
+        smoothSignal.push(signal[i] - (localMean / (end - start)));
     }
 
     const maxVal = Math.max(...smoothSignal);
@@ -284,14 +280,14 @@ function calculateRRIntervals(signal, timestamps) {
 
     for (let i = 1; i < smoothSignal.length - 1; i++) {
         if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > minPeakThreshold) {
-            const currentPeakTime = timestamps[i];[cite: 3]
+            const currentPeakTime = timestamps[i];
             
             if (lastPeakTime !== null) {
-                const rr = currentPeakTime - lastPeakTime;[cite: 3]
+                const rr = currentPeakTime - lastPeakTime;
                 
                 if (rr >= 450 && rr <= 1600) { 
-                    if(rrIntervals.length > 0) {[cite: 3]
-                        const prevRR = rrIntervals[rrIntervals.length - 1];[cite: 3]
+                    if(rrIntervals.length > 0) {
+                        const prevRR = rrIntervals[rrIntervals.length - 1];
                         if(Math.abs(rr - prevRR) / prevRR <= 0.40) { 
                             rrIntervals.push(rr); 
                             lastPeakTime = currentPeakTime; 
@@ -302,20 +298,20 @@ function calculateRRIntervals(signal, timestamps) {
                     }
                 }
             } else {
-                lastPeakTime = currentPeakTime;[cite: 3]
+                lastPeakTime = currentPeakTime;
             }
         }
     }
-    return rrIntervals;[cite: 3]
+    return rrIntervals;
 }
 
-function calculateRMSSD(rrIntervals) { Impl[cite: 3]
-    let sumSquaredDiffs = 0;[cite: 3]
-    for (let i = 0; i < rrIntervals.length - 1; i++) {[cite: 1, 3]
-        const diff = rrIntervals[i] - rrIntervals[i+1];[cite: 3]
-        sumSquaredDiffs += diff * diff;[cite: 3]
+function calculateRMSSD(rrIntervals) {
+    let sumSquaredDiffs = 0;
+    for (let i = 0; i < rrIntervals.length - 1; i++) {
+        const diff = rrIntervals[i] - rrIntervals[i+1];
+        sumSquaredDiffs += diff * diff;
     }
-    return Math.sqrt(sumSquaredDiffs / (rrIntervals.length - 1));[cite: 3]
+    return Math.sqrt(sumSquaredDiffs / (rrIntervals.length - 1));
 }
 
 async function enviarDatosSupabase(nombre, rmssd, bpm) {
@@ -324,25 +320,25 @@ async function enviarDatosSupabase(nombre, rmssd, bpm) {
     const fechaCompleta = localISOTime; 
     
     try {
-        const { data, error } = await supabase[cite: 3]
-            .from('registros_hrv') Jaeger[cite: 3]
-            .insert([[cite: 3]
+        const { data, error } = await supabase
+            .from('registros_hrv')
+            .insert([
                 { 
-                    alumno_nombre: nombre,[cite: 3]
-                    hrv_rmssd: parseFloat(rmssd.toFixed(1)),[cite: 3]
-                    pulso_bpm: parseInt(bpm),[cite: 3]
+                    alumno_nombre: nombre,
+                    hrv_rmssd: parseFloat(rmssd.toFixed(1)),
+                    pulso_bpm: parseInt(bpm),
                     fecha: fechaCompleta 
                 }
-            ]);[cite: 3]
+            ]);
             
-        if (error) throw error;[cite: 3]
+        if (error) throw error;
         
-        cloudStatus.innerText = "✓ Sincronizado correctamente con tu Coach.";[cite: 3]
-        cloudStatus.style.color = "#28a745";[cite: 3]
-    } catch (err) {[cite: 3]
-        console.error("Error al sincronizar con Supabase: ", err);[cite: 3]
-        cloudStatus.innerText = "⚠ Guardado localmente, error de red al sincronizar.";[cite: 3]
-        cloudStatus.style.color = "#dc3545";[cite: 3]
+        cloudStatus.innerText = "✓ Sincronizado correctamente con tu Coach.";
+        cloudStatus.style.color = "#28a745";
+    } catch (err) {
+        console.error("Error al sincronizar con Supabase: ", err);
+        cloudStatus.innerText = "⚠ Guardado localmente, error de red al sincronizar.";
+        cloudStatus.style.color = "#dc3545";
     }
 }
 </script>
