@@ -153,15 +153,15 @@ async function startTest() {
     alumnoInput.disabled = true;
     progressContainer.style.display = 'block';
     progressBar.style.width = '0%';
-    statusDiv.innerText = "Sintonizando óptica del teléfono móvil...";
+    statusDiv.innerText = "Cargando lentes ópticos móviles...";
 
     try {
         streamRef = await navigator.mediaDevices.getUserMedia({
             video: { 
                 facingMode: "environment", 
                 frameRate: { ideal: 30 },
-                width: { ideal: 240 },
-                height: { ideal: 240 }
+                width: { ideal: 160 },
+                height: { ideal: 160 }
             }
         });
         
@@ -169,17 +169,11 @@ async function startTest() {
         const track = streamRef.getVideoTracks()[0];
         const capabilities = track.getCapabilities();
         
-        const constraints = { advanced: [] };
-        let customSettings = {};
-        
-        if (capabilities.torch) customSettings.torch = true;
-        
-        if (Object.keys(customSettings).length > 0) {
-            constraints.advanced.push(customSettings);
-            await track.applyConstraints(constraints);
+        if (capabilities.torch) {
+            await track.applyConstraints({ advanced: [{ torch: true }] });
         }
         
-        statusDiv.innerText = "Midiendo... Pon tu dedo índice suavemente sobre el flash y el lente.";
+        statusDiv.innerText = "Midiendo... Mantén el dedo firme cubriendo el lente y el flash.";
         startTime = performance.now();
         
         if ('requestVideoFrameCallback' in video) {
@@ -189,7 +183,7 @@ async function startTest() {
         }
         
     } catch (err) {
-        alert("Error de acceso a la cámara. Asegúrate de otorgar permisos HTTPS.");
+        alert("Error de acceso a la cámara. Revisa los permisos HTTPS.");
         resetUI();
     }
 }
@@ -244,13 +238,13 @@ function endTest() {
     }
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     
-    statusDiv.innerText = "Procesando biometría por bloques de tiempo...";
+    statusDiv.innerText = "Filtrando señal con algoritmo de percentil móvil...";
     
     setTimeout(async () => {
         const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
         
-        if(rrIntervals.length < 15) {
-            statusDiv.innerText = `Error: Lectura inestable (${rrIntervals.length} latidos detectados). Coloca el dedo suavemente y de forma estable en la cámara trasera.`;
+        if(rrIntervals.length < 20) {
+            statusDiv.innerText = `Lectura incompleta (${rrIntervals.length} latidos). Recuerda posar el dedo suavemente sobre el flash sin aplastarlo para no cortar el flujo sanguíneo.`;
             resetUI();
             return;
         }
@@ -260,8 +254,8 @@ function endTest() {
         const bpm = Math.round(60000 / avgRR);
         
         rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM (Calculado sobre ${rrIntervals.length} latidos limpios)`;
-        cloudStatus.innerText = "Enviando datos de recuperación a la nube...";
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM (Basado en ${rrIntervals.length} ondas estables)`;
+        cloudStatus.innerText = "Sincronizando con Supabase...";
         resultDiv.style.display = 'block';
         
         await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
@@ -269,16 +263,15 @@ function endTest() {
     }, 600);
 }
 
-// 🧠 ALGORITMO DETECTOR MÓVIL POR VENTANAS DE TIEMPO LOCALES
+// 🧠 FILTRO DE PERCENTIL DE ALTA COMPENSACIÓN ÓPTICA
 function calculateRRIntervals(signal, timestamps) {
-    const rrIntervals = []; 
-    let lastPeakTime = null; 
-    const smoothSignal = []; 
-    const windowSize = 6; 
-    
-    if (signal.length < 50) return [];
+    const rrIntervals = [];
+    const smoothSignal = [];
+    const windowSize = 5; 
 
-    // 1. Filtro local de alta frecuencia (Suavizado base)
+    if (signal.length < 60) return [];
+
+    // 1. Eliminación de la deriva del flash (Filtro de media móvil centrado rápido)
     for(let i = 0; i < signal.length; i++) {
         let start = Math.max(0, i - windowSize);
         let end = Math.min(signal.length, i + windowSize);
@@ -287,56 +280,37 @@ function calculateRRIntervals(signal, timestamps) {
         smoothSignal.push(signal[i] - (localMean / (end - start)));
     }
 
-    // 2. Escaneo de picos con Umbral Estadístico Móvil (Ventana local de 2 segundos de datos)
-    // Esto destruye el efecto del encandilamiento adaptándose al brillo del momento.
-    const sampleRateIdeal = 30; 
-    const localBlockSize = sampleRateIdeal * 2; 
+    // 2. Encontrar el Percentil 70 para aislar picos sin importar la escala de saturación
+    const sortedValues = [...smoothSignal].sort((a, b) => a - b);
+    const indexPercentil = Math.floor(sortedValues.length * 0.70);
+    const globalThreshold = Math.max(sortedValues[indexPercentil], 0.01);
 
+    let lastPeakTime = null;
+
+    // 3. Extracción adaptativa de intervalos RR fisiológicos
     for (let i = 1; i < smoothSignal.length - 1; i++) {
-        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1]) {
-            
-            // Calculamos ruido local centrado en el punto actual
-            let bStart = Math.max(0, i - Math.floor(localBlockSize/2));
-            let bEnd = Math.min(smoothSignal.length, i + Math.floor(localBlockSize/2));
-            
-            let localSum = 0;
-            for(let j = bStart; j < bEnd; j++) localSum += smoothSignal[j];
-            let localMean = localSum / (bEnd - bStart);
-            
-            let localVarianceSum = 0;
-            for(let j = bStart; j < bEnd; j++) localVarianceSum += Math.pow(smoothSignal[j] - localMean, 2);
-            let localStdDev = Math.sqrt(localVarianceSum / (bEnd - bStart));
-            
-            // Umbral dinámico adaptado localmente al micro-brillo del milisegundo actual
-            const localThreshold = Math.max(localStdDev * 0.4, 0.02);
+        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
+            const currentPeakTime = timestamps[i];
 
-            if (smoothSignal[i] > localThreshold) {
-                const currentPeakTime = timestamps[i];
-                
-                if (lastPeakTime !== null) {
-                    const rr = currentPeakTime - lastPeakTime;
-                    
-                    // Rango fisiológico (De 40 a 140 BPM basales)
-                    if (rr >= 430 && rr <= 1500) { 
-                        if(rrIntervals.length > 0) {
-                            const prevRR = rrIntervals[rrIntervals.length - 1];
-                            // Tolerancia del 38% para admitir arritmia sinusal respiratoria normal
-                            if(Math.abs(rr - prevRR) / prevRR <= 0.38) { 
-                                rrIntervals.push(rr); 
-                                lastPeakTime = currentPeakTime; 
-                            }
-                        } else {
-                            rrIntervals.push(rr); 
-                            lastPeakTime = currentPeakTime; 
-                        }
-                    }
-                } else {
+            if (lastPeakTime !== null) {
+                const rr = currentPeakTime - lastPeakTime;
+
+                // Ventana fisiológica ampliada para evitar bloqueos por latidos perdidos (37 a 150 BPM)
+                if (rr >= 400 && rr <= 1600) {
+                    // Quitamos la restricción encadenada del 35% que abortaba el test por un parpadeo
+                    rrIntervals.push(rr);
                     lastPeakTime = currentPeakTime;
                 }
+            } else {
+                lastPeakTime = currentPeakTime;
             }
         }
     }
-    return rrIntervals;
+
+    // 4. Limpieza final de Outliers estadísticos (Filtro post-captura)
+    if (rrIntervals.length < 5) return [];
+    const avg = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
+    return rrIntervals.filter(rr => Math.abs(rr - avg) / avg <= 0.40);
 }
 
 function calculateRMSSD(rrIntervals) {
