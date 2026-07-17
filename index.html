@@ -107,7 +107,7 @@
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const startBtn = document.getElementById('startBtn');
 const alumnoInput = document.getElementById('alumnoInput');
@@ -320,7 +320,7 @@ async function enviarDatosSupabase(nombre, rmssd, bpm) {
     const fechaCompleta = localISOTime; 
     
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('registros_hrv')
             .insert([
                 { 
