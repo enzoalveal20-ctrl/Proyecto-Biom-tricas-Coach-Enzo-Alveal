@@ -263,7 +263,7 @@ function endTest() {
     }, 600);
 }
 
-// 🧠 FILTRO DE PERCENTIL DE ALTA COMPENSACIÓN ÓPTICA
+// 🧠 FILTRO DE PERCENTIL CON PERIODO REFRACTARIO ANTIDICRÓTICO
 function calculateRRIntervals(signal, timestamps) {
     const rrIntervals = [];
     const smoothSignal = [];
@@ -271,7 +271,7 @@ function calculateRRIntervals(signal, timestamps) {
 
     if (signal.length < 60) return [];
 
-    // 1. Eliminación de la deriva del flash (Filtro de media móvil centrado rápido)
+    // 1. Eliminación de la deriva del flash (Media móvil centrada)
     for(let i = 0; i < signal.length; i++) {
         let start = Math.max(0, i - windowSize);
         let end = Math.min(signal.length, i + windowSize);
@@ -280,14 +280,14 @@ function calculateRRIntervals(signal, timestamps) {
         smoothSignal.push(signal[i] - (localMean / (end - start)));
     }
 
-    // 2. Encontrar el Percentil 70 para aislar picos sin importar la escala de saturación
+    // 2. Encontrar el Percentil 75 para picos limpios
     const sortedValues = [...smoothSignal].sort((a, b) => a - b);
-    const indexPercentil = Math.floor(sortedValues.length * 0.70);
+    const indexPercentil = Math.floor(sortedValues.length * 0.75);
     const globalThreshold = Math.max(sortedValues[indexPercentil], 0.01);
 
     let lastPeakTime = null;
 
-    // 3. Extracción adaptativa de intervalos RR fisiológicos
+    // 3. Extracción con bloqueo de tiempo (Periodo refractario de 500ms)
     for (let i = 1; i < smoothSignal.length - 1; i++) {
         if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
             const currentPeakTime = timestamps[i];
@@ -295,9 +295,13 @@ function calculateRRIntervals(signal, timestamps) {
             if (lastPeakTime !== null) {
                 const rr = currentPeakTime - lastPeakTime;
 
-                // Ventana fisiológica ampliada para evitar bloqueos por latidos perdidos (37 a 150 BPM)
-                if (rr >= 400 && rr <= 1600) {
-                    // Quitamos la restricción encadenada del 35% que abortaba el test por un parpadeo
+                // 🛑 FILTRO CRUCIAL: Si pasaron menos de 530 ms, es la onda dicrótica/doble pico. Se ignora.
+                if (rr < 530) {
+                    continue; 
+                }
+
+                // Ventana fisiológica real en reposo (38 a 113 BPM)
+                if (rr >= 530 && rr <= 1600) {
                     rrIntervals.push(rr);
                     lastPeakTime = currentPeakTime;
                 }
@@ -307,11 +311,11 @@ function calculateRRIntervals(signal, timestamps) {
         }
     }
 
-    // 4. Limpieza final de Outliers estadísticos (Filtro post-captura)
+    // 4. Limpieza final de Outliers estadísticos estándar
     if (rrIntervals.length < 5) return [];
     const avg = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
-    return rrIntervals.filter(rr => Math.abs(rr - avg) / avg <= 0.40);
-}
+    return rrIntervals.filter(rr => Math.abs(rr - avg) / avg <= 0.35);
+}}
 
 function calculateRMSSD(rrIntervals) {
     let sumSquaredDiffs = 0;
