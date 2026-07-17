@@ -232,87 +232,90 @@ function resetUI() {
 }
 
 function endTest() {
-    if (streamRef) { //[cite: 1]
-        streamRef.getTracks().forEach(track => track.stop()); //[cite: 1]
-        streamRef = null; //[cite: 1]
+    if (streamRef) {[cite: 3]
+        streamRef.getTracks().forEach(track => track.stop());[cite: 3]
+        streamRef = null;[cite: 3]
     }
-    if (animationFrameId) cancelAnimationFrame(animationFrameId); //[cite: 1]
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);[cite: 3]
     
-    statusDiv.innerText = "Calculando variabilidad de pulso..."; //[cite: 1]
+    statusDiv.innerText = "Calculando variabilidad de pulso...";[cite: 3]
     
     setTimeout(async () => {
-        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps); //[cite: 1]
+        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);[cite: 3]
         
-        if(rrIntervals.length < 5) { //[cite: 1]
-            statusDiv.innerText = "Error: Lectura inestable. Revisa la colocación del dedo."; //[cite: 1]
-            resetUI(); //[cite: 1]
+        // Si el array es críticamente bajo, dejamos el mensaje visible para diagnosticar
+        if(rrIntervals.length < 3) { 
+            statusDiv.innerText = `Lectura inestable (Solo se detectaron ${rrIntervals.length} latidos limpios). Revisa que el dedo cubra bien la cámara y el flash.`; 
+            startBtn.disabled = false;
+            alumnoInput.disabled = false;
+            progressContainer.style.display = 'none';
             return;
         }
         
-        const rmssd = calculateRMSSD(rrIntervals); //[cite: 1]
-        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length; //[cite: 1]
-        const bpm = Math.round(60000 / avgRR); //[cite: 1]
+        const rmssd = calculateRMSSD(rrIntervals);[cite: 3]
+        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;[cite: 3]
+        const bpm = Math.round(60000 / avgRR);[cite: 3]
         
-        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`; //[cite: 1]
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`; //[cite: 1]
-        cloudStatus.innerText = "Enviando datos de recuperación a la nube..."; //[cite: 1]
-        resultDiv.style.display = 'block'; //[cite: 1]
+        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;[cite: 3]
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`;[cite: 3]
+        cloudStatus.innerText = "Enviando datos de recuperación a la nube...";[cite: 3]
+        resultDiv.style.display = 'block';[cite: 3]
         
-        // ENVÍO DE DATOS AUTOMÁTICO EN LA NUBE[cite: 1]
-        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm); //[cite: 1]
+        // ENVÍO DE DATOS AUTOMÁTICO EN LA NUBE
+        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);[cite: 3]
         
-        resetUI(); //[cite: 1]
-    }, 500); //[cite: 1]
+        resetUI();[cite: 3]
+    }, 500);[cite: 3]
 }
 
-// 🛠️ ALGORITMO OPTIMIZADO: CORRECCIÓN DE FLUJO DE HISTORIAL R-R
+// 🛠️ ALGORITMO TOLERANTE PARA SEÑALES DE CÁMERA (PPG)
 function calculateRRIntervals(signal, timestamps) {
     const rrIntervals = []; 
     let lastPeakTime = null; 
     const smoothSignal = []; 
-    const windowSize = 7; 
+    const windowSize = 7;[cite: 3]
     
-    // Suavizado por media móvil local
-    for(let i = 0; i < signal.length; i++) { 
-        let start = Math.max(0, i - windowSize); 
-        let end = Math.min(signal.length, i + windowSize); 
-        let localMean = 0; 
-        for(let j = start; j < end; j++) localMean += signal[j]; 
-        smoothSignal.push(signal[i] - (localMean / (end - start))); 
+    // Suavizado por media móvil local[cite: 3]
+    for(let i = 0; i < signal.length; i++) {[cite: 3]
+        let start = Math.max(0, i - windowSize);[cite: 3]
+        let end = Math.min(signal.length, i + windowSize);[cite: 3]
+        let localMean = 0;[cite: 3]
+        for(let j = start; j < end; j++) localMean += signal[j];[cite: 3]
+        smoothSignal.push(signal[i] - (localMean / (end - start)));[cite: 3]
     }
 
-    // Definición de umbral adaptativo
     const maxVal = Math.max(...smoothSignal);
-    const minPeakThreshold = maxVal * 0.15; 
+    const minPeakThreshold = maxVal * 0.12; // Umbral dinámico levemente más sensible para cámaras frontales/traseras
 
     for (let i = 1; i < smoothSignal.length - 1; i++) {
-        // Detección de picos locales
         if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > minPeakThreshold) {
-            const currentPeakTime = timestamps[i]; 
+            const currentPeakTime = timestamps[i];[cite: 3]
             
             if (lastPeakTime !== null) {
-                const rr = currentPeakTime - lastPeakTime; 
+                const rr = currentPeakTime - lastPeakTime;[cite: 3]
                 
-                // 🛑 VENTANA REFRACTARIA CRÍTICA
-                if (rr >= 450 && rr <= 1500) { 
-                    if(rrIntervals.length > 0) { 
-                        const prevRR = rrIntervals[rrIntervals.length - 1]; 
-                        // Filtro dinámico optimizado al 35% para tolerar variaciones HRV fisiológicas sanas
-                        if(Math.abs(rr - prevRR) / prevRR <= 0.35) { 
+                // 🛑 FILTRO DE VENTANA REFRACTARIA AMPLIADO
+                // Mantenemos el límite de 450 ms para descartar ruidos dicróticos.
+                // Ampliamos el rango superior a 1600 ms por si hay frecuencias basales muy bajas (bradicardias de atletas).
+                if (rr >= 450 && rr <= 1600) { 
+                    if(rrIntervals.length > 0) {[cite: 3]
+                        const prevRR = rrIntervals[rrIntervals.length - 1];[cite: 3]
+                        // Filtro de tolerancia adaptado al 40% para compensar las variaciones de muestreo óptico de los navegadores
+                        if(Math.abs(rr - prevRR) / prevRR <= 0.40) { 
                             rrIntervals.push(rr); 
-                            lastPeakTime = currentPeakTime; // Mover el punto de referencia SOLO si el latido es válido
+                            lastPeakTime = currentPeakTime; 
                         }
                     } else {
                         rrIntervals.push(rr); 
-                        lastPeakTime = currentPeakTime; // Mover el punto de referencia SOLO si el latido es válido
+                        lastPeakTime = currentPeakTime; 
                     }
                 }
             } else {
-                lastPeakTime = currentPeakTime; 
+                lastPeakTime = currentPeakTime;[cite: 3]
             }
         }
     }
-    return rrIntervals; 
+    return rrIntervals;[cite: 3]
 }
 
 function calculateRMSSD(rrIntervals) { //[cite: 1]
