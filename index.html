@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitoreo HRV en Tiempo Real</title>
-    <!-- Cargamos la librería oficial de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -64,7 +63,7 @@
             background-color: #00adb5;
             transition: width 0.1s linear;
         }
-        #status { margin-top: 15px; font-size: 14px; color: #aaaaaa; }
+        #status { margin-top: 15px; font-size: 14px; color: #aaaaaa; padding: 0 10px; }
         #result {
             margin-top: 25px;
             padding: 15px;
@@ -103,7 +102,6 @@
 <canvas id="canvas" width="20" height="20"></canvas>
 
 <script>
-// CONFIGURACIÓN SUPABASE
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
@@ -155,21 +153,35 @@ async function startTest() {
     alumnoInput.disabled = true;
     progressContainer.style.display = 'block';
     progressBar.style.width = '0%';
-    statusDiv.innerText = "Inicializando cámara y encendiendo flash...";
+    statusDiv.innerText = "Inicializando cámara y adaptando sensor...";
 
     try {
         streamRef = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment", frameRate: { ideal: 30 } }
+            video: { 
+                facingMode: "environment", 
+                frameRate: { ideal: 30 },
+                width: { ideal: 240 },
+                height: { ideal: 240 }
+            }
         });
         
         video.srcObject = streamRef;
         const track = streamRef.getVideoTracks()[0];
         const capabilities = track.getCapabilities();
-        if (capabilities.torch) {
-            await track.applyConstraints({ advanced: [{ torch: true }] });
+        
+        const constraints = { advanced: [] };
+        let customSettings = {};
+        
+        if (capabilities.torch) customSettings.torch = true;
+        if (capabilities.exposureMode) customSettings.exposureMode = 'continuous';
+        if (capabilities.whiteBalanceMode) customSettings.whiteBalanceMode = 'continuous';
+        
+        if (Object.keys(customSettings).length > 0) {
+            constraints.advanced.push(customSettings);
+            await track.applyConstraints(constraints);
         }
         
-        statusDiv.innerText = "Midiendo pulso... Mantén el dedo muy quieto.";
+        statusDiv.innerText = "Midiendo... Presiona firmemente el dedo contra la cámara y el flash.";
         startTime = performance.now();
         
         if ('requestVideoFrameCallback' in video) {
@@ -179,7 +191,7 @@ async function startTest() {
         }
         
     } catch (err) {
-        alert("Error de acceso a la cámara. Recuerda usar un enlace seguro HTTPS.");
+        alert("Error de acceso a la cámara. Asegúrate de otorgar permisos HTTPS.");
         resetUI();
     }
 }
@@ -214,7 +226,7 @@ function analyzeFrame() {
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
         let redSum = 0;
         for (let i = 0; i < imgData.length; i += 4) {
-            redSum += imgData[i];
+            redSum += imgData[i]; 
         }
         ppgSignal.push(redSum / (imgData.length / 4));
         timeStamps.push(performance.now());
@@ -234,16 +246,14 @@ function endTest() {
     }
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     
-    statusDiv.innerText = "Calculando variabilidad de pulso...";
+    statusDiv.innerText = "Procesando biometría adaptativa móvil...";
     
     setTimeout(async () => {
         const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
         
-        if(rrIntervals.length < 5) {
-            statusDiv.innerText = `Error: Lectura inestable (Se procesaron ${rrIntervals.length} latidos limpios). Por favor, repite el test cubriendo bien la cámara y el flash.`;
-            startBtn.disabled = false;
-            alumnoInput.disabled = false;
-            progressContainer.style.display = 'none';
+        if(rrIntervals.length < 10) {
+            statusDiv.innerText = `Error: Lectura inestable (${rrIntervals.length} latidos detectados). Cubre por completo el flash y la cámara con el índice sin presionar excesivamente duro.`;
+            resetUI();
             return;
         }
         
@@ -252,21 +262,24 @@ function endTest() {
         const bpm = Math.round(60000 / avgRR);
         
         rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`;
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM (Basado en ${rrIntervals.length} intervalos)`;
         cloudStatus.innerText = "Enviando datos de recuperación a la nube...";
         resultDiv.style.display = 'block';
         
         await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
         resetUI();
-    }, 500);
+    }, 600);
 }
 
 function calculateRRIntervals(signal, timestamps) {
     const rrIntervals = []; 
     let lastPeakTime = null; 
     const smoothSignal = []; 
-    const windowSize = 7;
+    const windowSize = 9; // Ventana ligeramente mayor para estabilizar ruido de flash
     
+    if (signal.length < 30) return [];
+
+    // 1. Filtrado de Media Móvil Detrending
     for(let i = 0; i < signal.length; i++) {
         let start = Math.max(0, i - windowSize);
         let end = Math.min(signal.length, i + windowSize);
@@ -275,20 +288,25 @@ function calculateRRIntervals(signal, timestamps) {
         smoothSignal.push(signal[i] - (localMean / (end - start)));
     }
 
-    const maxVal = Math.max(...smoothSignal);
-    const minPeakThreshold = maxVal * 0.12; 
+    // 2. Umbral dinámico basado en desviación estándar para pantallas móviles encandiladas
+    const mean = smoothSignal.reduce((a, b) => a + b, 0) / smoothSignal.length;
+    const stdDev = Math.sqrt(smoothSignal.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / smoothSignal.length);
+    const adaptiveThreshold = Math.max(stdDev * 0.5, 0.05); // Umbral ultra-sensible adaptativo
 
+    // 3. Detección de picos
     for (let i = 1; i < smoothSignal.length - 1; i++) {
-        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > minPeakThreshold) {
+        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > adaptiveThreshold) {
             const currentPeakTime = timestamps[i];
             
             if (lastPeakTime !== null) {
                 const rr = currentPeakTime - lastPeakTime;
                 
-                if (rr >= 450 && rr <= 1600) { 
+                // Rango fisiológico estricto (37 a 150 BPM)
+                if (rr >= 400 && rr <= 1600) { 
                     if(rrIntervals.length > 0) {
                         const prevRR = rrIntervals[rrIntervals.length - 1];
-                        if(Math.abs(rr - prevRR) / prevRR <= 0.40) { 
+                        // Filtro de estabilidad fisiológica instantánea (no puede variar más del 35% entre latidos adyacentes)
+                        if(Math.abs(rr - prevRR) / prevRR <= 0.35) { 
                             rrIntervals.push(rr); 
                             lastPeakTime = currentPeakTime; 
                         }
@@ -317,7 +335,6 @@ function calculateRMSSD(rrIntervals) {
 async function enviarDatosSupabase(nombre, rmssd, bpm) {
     const tzoffset = (new Date()).getTimezoneOffset() * 60000;
     const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
-    const fechaCompleta = localISOTime; 
     
     try {
         const { data, error } = await supabaseClient
@@ -327,13 +344,13 @@ async function enviarDatosSupabase(nombre, rmssd, bpm) {
                     alumno_nombre: nombre,
                     hrv_rmssd: parseFloat(rmssd.toFixed(1)),
                     pulso_bpm: parseInt(bpm),
-                    fecha: fechaCompleta 
+                    fecha: localISOTime 
                 }
             ]);
             
         if (error) throw error;
         
-        cloudStatus.innerText = "✓ Sincronizado correctamente con tu Coach.";
+        cloudStatus.innerText = "✓ Sincronizado correctamente con tu base de datos.";
         cloudStatus.style.color = "#28a745";
     } catch (err) {
         console.error("Error al sincronizar con Supabase: ", err);
