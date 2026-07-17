@@ -104,238 +104,259 @@
 <video id="video" autoplay playsinline></video>
 <canvas id="canvas" width="20" height="20"></canvas>
 
+// ... [Tu código HTML inicial se mantiene exactamente igual] ...
+
 <script>
-// CONFIGURACIÓN DE TU CONEXIÓN CON SUPABASE
-// Asegúrate de que este bloque aparezca UNA SOLA VEZ
+// CONFIGURACIÓN DE TU CONEXIÓN CON SUPABASE[cite: 1]
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
-supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-// Nota: Dependiendo de la librería puede ser 'supabase.createClient' o 'window.supabase.createClient'
-const startBtn = document.getElementById('startBtn');
-const alumnoInput = document.getElementById('alumnoInput');
-const progressContainer = document.getElementById('progressContainer');
-const progressBar = document.getElementById('progressBar');
-const statusDiv = document.getElementById('status');
-const resultDiv = document.getElementById('result');
-const rmssdVal = document.getElementById('rmssdVal');
-const pulseVal = document.getElementById('pulseVal');
-const cloudStatus = document.getElementById('cloudStatus');
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
+supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); //[cite: 1]
 
-let streamRef = null;
-let animationFrameId = null;
-let ppgSignal = [];
-let timeStamps = [];
-let startTime = 0;
-const DURATION = 60000;
+const startBtn = document.getElementById('startBtn'); //[cite: 1]
+const alumnoInput = document.getElementById('alumnoInput'); //[cite: 1]
+const progressContainer = document.getElementById('progressContainer'); //[cite: 1]
+const progressBar = document.getElementById('progressBar'); //[cite: 1]
+const statusDiv = document.getElementById('status'); //[cite: 1]
+const resultDiv = document.getElementById('result'); //[cite: 1]
+const rmssdVal = document.getElementById('rmssdVal'); //[cite: 1]
+const pulseVal = document.getElementById('pulseVal'); //[cite: 1]
+const cloudStatus = document.getElementById('cloudStatus'); //[cite: 1]
+const video = document.getElementById('video'); //[cite: 1]
+const canvas = document.getElementById('canvas'); //[cite: 1]
+const ctx = canvas.getContext('2d', { willReadFrequently: true }); //[cite: 1]
 
-// Recordar el nombre del alumno para que no tenga que escribirlo cada día
+let streamRef = null; //[cite: 1]
+let animationFrameId = null; //[cite: 1]
+let ppgSignal = []; //[cite: 1]
+let timeStamps = []; //[cite: 1]
+let startTime = 0; //[cite: 1]
+const DURATION = 60000; //[cite: 1]
+
+// Recordar el nombre del alumno[cite: 1]
 document.addEventListener('DOMContentLoaded', () => {
-    const nombreGuardado = localStorage.getItem('nombre_alumno_hrv');
+    const nombreGuardado = localStorage.getItem('nombre_alumno_hrv'); //[cite: 1]
     if (nombreGuardado) {
-        alumnoInput.value = nombreGuardado;
-        statusDiv.innerText = "Listo para comenzar.";
+        alumnoInput.value = nombreGuardado; //[cite: 1]
+        statusDiv.innerText = "Listo para comenzar."; //[cite: 1]
     }
 });
 
-startBtn.addEventListener('click', startTest);
+startBtn.addEventListener('click', startTest); //[cite: 1]
 
 async function startTest() {
-    const nombre = alumnoInput.value.trim();
+    const nombre = alumnoInput.value.trim(); //[cite: 1]
     if (!nombre) {
-        alert("Por favor, ingresa tu nombre y apellido antes de comenzar.");
+        alert("Por favor, ingresa tu nombre y apellido antes de comenzar."); //[cite: 1]
         return;
     }
     
-    // Guardar nombre localmente
-    localStorage.setItem('nombre_alumno_hrv', nombre);
+    localStorage.setItem('nombre_alumno_hrv', nombre); //[cite: 1]
     
-    ppgSignal = [];
-    timeStamps = [];
-    resultDiv.style.display = 'none';
-    startBtn.disabled = true;
-    alumnoInput.disabled = true;
-    progressContainer.style.display = 'block';
-    progressBar.style.width = '0%';
-    statusDiv.innerText = "Inicializando cámara y encendiendo flash...";
+    ppgSignal = []; //[cite: 1]
+    timeStamps = []; //[cite: 1]
+    resultDiv.style.display = 'none'; //[cite: 1]
+    startBtn.disabled = true; //[cite: 1]
+    alumnoInput.disabled = true; //[cite: 1]
+    progressContainer.style.display = 'block'; //[cite: 1]
+    progressBar.style.width = '0%'; //[cite: 1]
+    statusDiv.innerText = "Inicializando cámara y encendiendo flash..."; //[cite: 1]
 
     try {
         streamRef = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment", frameRate: { ideal: 30 } }
+            video: { facingMode: "environment", frameRate: { ideal: 30 } } //[cite: 1]
         });
         
-        video.srcObject = streamRef;
-        const track = streamRef.getVideoTracks()[0];
-        const capabilities = track.getCapabilities();
+        video.srcObject = streamRef; //[cite: 1]
+        const track = streamRef.getVideoTracks()[0]; //[cite: 1]
+        const capabilities = track.getCapabilities(); //[cite: 1]
         if (capabilities.torch) {
-            await track.applyConstraints({ advanced: [{ torch: true }] });
+            await track.applyConstraints({ advanced: [{ torch: true }] }); //[cite: 1]
         }
         
-        statusDiv.innerText = "Midiendo pulso... Mantén el dedo muy quieto.";
-        startTime = performance.now();
+        statusDiv.innerText = "Midiendo pulso... Mantén el dedo muy quieto."; //[cite: 1]
+        startTime = performance.now(); //[cite: 1]
         
         if ('requestVideoFrameCallback' in video) {
-            video.requestVideoFrameCallback(processFrameCallback);
+            video.requestVideoFrameCallback(processFrameCallback); //[cite: 1]
         } else {
-            processFrameLegacy();
+            processFrameLegacy(); //[cite: 1]
         }
         
     } catch (err) {
-        alert("Error de acceso a la cámara. Recuerda usar un enlace seguro HTTPS.");
-        resetUI();
+        alert("Error de acceso a la cámara. Recuerda usar un enlace seguro HTTPS."); //[cite: 1]
+        resetUI(); //[cite: 1]
     }
 }
 
 function processFrameCallback() {
-    if (!streamRef) return;
-    analyzeFrame();
-    const elapsed = performance.now() - startTime;
-    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
+    if (!streamRef) return; //[cite: 1]
+    analyzeFrame(); //[cite: 1]
+    const elapsed = performance.now() - startTime; //[cite: 1]
+    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%'; //[cite: 1]
     if (elapsed < DURATION) {
-        video.requestVideoFrameCallback(processFrameCallback);
+        video.requestVideoFrameCallback(processFrameCallback); //[cite: 1]
     } else {
-        endTest();
+        endTest(); //[cite: 1]
     }
 }
 
 function processFrameLegacy() {
-    if (!streamRef) return;
-    analyzeFrame();
-    const elapsed = performance.now() - startTime;
-    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
+    if (!streamRef) return; //[cite: 1]
+    analyzeFrame(); //[cite: 1]
+    const elapsed = performance.now() - startTime; //[cite: 1]
+    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%'; //[cite: 1]
     if (elapsed < DURATION) {
-        animationFrameId = requestAnimationFrame(processFrameLegacy);
+        animationFrameId = requestAnimationFrame(processFrameLegacy); //[cite: 1]
     } else {
-        endTest();
+        endTest(); //[cite: 1]
     }
 }
 
 function analyzeFrame() {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        let redSum = 0;
-        for (let i = 0; i < imgData.length; i += 4) {
-            redSum += imgData[i];
+    if (video.readyState === video.HAVE_ENOUGH_DATA) { //[cite: 1]
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height); //[cite: 1]
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data; //[cite: 1]
+        let redSum = 0; //[cite: 1]
+        for (let i = 0; i < imgData.length; i += 4) { //[cite: 1]
+            redSum += imgData[i]; //[cite: 1]
         }
-        ppgSignal.push(redSum / (imgData.length / 4));
-        timeStamps.push(performance.now());
+        ppgSignal.push(redSum / (imgData.length / 4)); //[cite: 1]
+        timeStamps.push(performance.now()); //[cite: 1]
     }
 }
 
 function resetUI() {
-    startBtn.disabled = false;
-    alumnoInput.disabled = false;
-    progressContainer.style.display = 'none';
-    statusDiv.innerText = "Listo para comenzar.";
+    startBtn.disabled = false; //[cite: 1]
+    alumnoInput.disabled = false; //[cite: 1]
+    progressContainer.style.display = 'none'; //[cite: 1]
+    statusDiv.innerText = "Listo para comenzar."; //[cite: 1]
 }
 
 function endTest() {
-    if (streamRef) {
-        streamRef.getTracks().forEach(track => track.stop());
-        streamRef = null;
+    if (streamRef) { //[cite: 1]
+        streamRef.getTracks().forEach(track => track.stop()); //[cite: 1]
+        streamRef = null; //[cite: 1]
     }
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    if (animationFrameId) cancelAnimationFrame(animationFrameId); //[cite: 1]
     
-    statusDiv.innerText = "Calculando variabilidad de pulso...";
+    statusDiv.innerText = "Calculando variabilidad de pulso..."; //[cite: 1]
     
     setTimeout(async () => {
-        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
+        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps); //[cite: 1]
         
-        if(rrIntervals.length < 5) {
-            statusDiv.innerText = "Error: Lectura inestable. Revisa la colocación del dedo.";
-            resetUI();
+        if(rrIntervals.length < 5) { //[cite: 1]
+            statusDiv.innerText = "Error: Lectura inestable. Revisa la colocación del dedo."; //[cite: 1]
+            resetUI(); //[cite: 1]
             return;
         }
         
-        const rmssd = calculateRMSSD(rrIntervals);
-        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
-        const bpm = Math.round(60000 / avgRR);
+        const rmssd = calculateRMSSD(rrIntervals); //[cite: 1]
+        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length; //[cite: 1]
+        const bpm = Math.round(60000 / avgRR); //[cite: 1]
         
-        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`;
-        cloudStatus.innerText = "Enviando datos de recuperación a la nube...";
-        resultDiv.style.display = 'block';
+        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`; //[cite: 1]
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM`; //[cite: 1]
+        cloudStatus.innerText = "Enviando datos de recuperación a la nube..."; //[cite: 1]
+        resultDiv.style.display = 'block'; //[cite: 1]
         
-        // ENVÍO DE DATOS AUTOMÁTICO EN LA NUBE
-        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
+        // ENVÍO DE DATOS AUTOMÁTICO EN LA NUBE[cite: 1]
+        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm); //[cite: 1]
         
-        resetUI();
-    }, 500);
+        resetUI(); //[cite: 1]
+    }, 500); //[cite: 1]
 }
 
+// 🛠️ ALGORITMO OPTIMIZADO CON FILTRO PARA EVITAR EL DOBLE CONTEO
 function calculateRRIntervals(signal, timestamps) {
-    const rrIntervals = [];
-    let lastPeakTime = null;
-    const smoothSignal = [];
-    const windowSize = 5;
+    const rrIntervals = []; //[cite: 1]
+    let lastPeakTime = null; //[cite: 1]
+    const smoothSignal = []; //[cite: 1]
+    const windowSize = 7; // Incrementado ligeramente para un mejor suavizado de ruido fino
     
-    for(let i = 0; i < signal.length; i++) {
-        let start = Math.max(0, i - windowSize);
-        let end = Math.min(signal.length, i + windowSize);
-        let localMean = 0;
-        for(let j = start; j < end; j++) localMean += signal[j];
-        smoothSignal.push(signal[i] - (localMean / (end - start)));
+    // Suavizado por media móvil local[cite: 1]
+    for(let i = 0; i < signal.length; i++) { //[cite: 1]
+        let start = Math.max(0, i - windowSize); //[cite: 1]
+        let end = Math.min(signal.length, i + windowSize); //[cite: 1]
+        let localMean = 0; //[cite: 1]
+        for(let j = start; j < end; j++) localMean += signal[j]; //[cite: 1]
+        smoothSignal.push(signal[i] - (localMean / (end - start))); //[cite: 1]
     }
+
+    // Definición de umbral adaptativo
+    const maxVal = Math.max(...smoothSignal);
+    const minPeakThreshold = maxVal * 0.15; // Un pico debe ser al menos el 15% del pico más alto detectado
 
     for (let i = 1; i < smoothSignal.length - 1; i++) {
-        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > 0) {
-            const currentPeakTime = timestamps[i];
+        // Detección de picos locales[cite: 1]
+        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > minPeakThreshold) {
+            const currentPeakTime = timestamps[i]; //[cite: 1]
+            
             if (lastPeakTime !== null) {
-                const rr = currentPeakTime - lastPeakTime;
-                if (rr >= 400 && rr <= 1500) {
-                    if(rrIntervals.length > 0) {
-                        const prevRR = rrIntervals[rrIntervals.length - 1];
-                        if(Math.abs(rr - prevRR) / prevRR <= 0.20) {
-                            rrIntervals.push(rr);
+                const rr = currentPeakTime - lastPeakTime; //[cite: 1]
+                
+                // 🛑 VENTANA REFRACTARIA CRÍTICA:
+                // Ignorar de inmediato cualquier "latido" que ocurra antes de los 450 ms (Equivale a un límite fisiológico de 133 BPM en reposo).
+                // Esto elimina de raíz la lectura de la onda dicrótica y el ruido de alta frecuencia del canal.
+                if (rr >= 450 && rr <= 1500) { 
+                    if(rrIntervals.length > 0) { //[cite: 1]
+                        const prevRR = rrIntervals[rrIntervals.length - 1]; //[cite: 1]
+                        // Filtro de consistencia fisiológica (Evita variaciones absurdas mayores al 25% entre latidos seguidos)
+                        if(Math.abs(rr - prevRR) / prevRR <= 0.25) { 
+                            rrIntervals.push(rr); //[cite: 1]
                         }
                     } else {
-                        rrIntervals.push(rr);
+                        rrIntervals.push(rr); //[cite: 1]
                     }
+                    lastPeakTime = currentPeakTime; // Actualizar solo cuando se confirma un latido real válido
                 }
+            } else {
+                lastPeakTime = currentPeakTime; //[cite: 1]
             }
-            lastPeakTime = currentPeakTime;
         }
     }
-    return rrIntervals;
+    return rrIntervals; //[cite: 1]
 }
 
-function calculateRMSSD(rrIntervals) {
-    let sumSquaredDiffs = 0;
-    for (let i = 0; i < rrIntervals.length - 1; i++) {
-        const diff = rrIntervals[i] - rrIntervals[i+1];
-        sumSquaredDiffs += diff * diff;
+function calculateRMSSD(rrIntervals) { //[cite: 1]
+    let sumSquaredDiffs = 0; //[cite: 1]
+    for (let i = 0; i < rrIntervals.length - 1; i++) { //[cite: 1]
+        const diff = rrIntervals[i] - rrIntervals[i+1]; //[cite: 1]
+        sumSquaredDiffs += diff * diff; //[cite: 1]
     }
-    return Math.sqrt(sumSquaredDiffs / (rrIntervals.length - 1));
+    return Math.sqrt(sumSquaredDiffs / (rrIntervals.length - 1)); //[cite: 1]
 }
 
-// FUNCIÓN PARA CONECTAR Y GUARDAR EN LA NUBE
+// 🛠️ ENVÍO DE FECHA CON MARCA DE TIEMPO COMPLETA
 async function enviarDatosSupabase(nombre, rmssd, bpm) {
-    const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    // Obtenemos la hora local del dispositivo del alumno con su respectiva zona horaria
+    const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
+    
+    // Esto guardará un formato completo: "2026-07-16T22:45:00.123"
+    // Supabase lo recibirá de forma cronológica perfecta.
+    const fechaCompleta = localISOTime; 
     
     try {
-        const { data, error } = await supabase
-            .from('registros_hrv')
-            .insert([
+        const { data, error } = await supabase //[cite: 1]
+            .from('registros_hrv') //[cite: 1]
+            .insert([ //[cite: 1]
                 { 
-                    alumno_nombre: nombre, 
-                    hrv_rmssd: parseFloat(rmssd.toFixed(1)), 
-                    pulso_bpm: parseInt(bpm), 
-                    fecha: hoy 
+                    alumno_nombre: nombre, //[cite: 1]
+                    hrv_rmssd: parseFloat(rmssd.toFixed(1)), //[cite: 1]
+                    pulso_bpm: parseInt(bpm), //[cite: 1]
+                    fecha: fechaCompleta // Guardamos la marca de tiempo exacta
                 }
-            ]);
+            ]); //[cite: 1]
             
-        if (error) throw error;
+        if (error) throw error; //[cite: 1]
         
-        cloudStatus.innerText = "✓ Sincronizado correctamente con tu Coach.";
-        cloudStatus.style.color = "#28a745";
-    } catch (err) {
-        console.error("Error al sincronizar con Supabase: ", err);
-        cloudStatus.innerText = "⚠ Guardado localmente, error de red al sincronizar.";
-        cloudStatus.style.color = "#dc3545";
+        cloudStatus.innerText = "✓ Sincronizado correctamente con tu Coach."; //[cite: 1]
+        cloudStatus.style.color = "#28a745"; //[cite: 1]
+    } catch (err) { //[cite: 1]
+        console.error("Error al sincronizar con Supabase: ", err); //[cite: 1]
+        cloudStatus.innerText = "⚠ Guardado localmente, error de red al sincronizar."; //[cite: 1]
+        cloudStatus.style.color = "#dc3545"; //[cite: 1]
     }
 }
 </script>
