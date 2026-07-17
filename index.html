@@ -153,7 +153,7 @@ async function startTest() {
     alumnoInput.disabled = true;
     progressContainer.style.display = 'block';
     progressBar.style.width = '0%';
-    statusDiv.innerText = "Inicializando cámara y adaptando sensor...";
+    statusDiv.innerText = "Sintonizando óptica del teléfono móvil...";
 
     try {
         streamRef = await navigator.mediaDevices.getUserMedia({
@@ -173,15 +173,13 @@ async function startTest() {
         let customSettings = {};
         
         if (capabilities.torch) customSettings.torch = true;
-        if (capabilities.exposureMode) customSettings.exposureMode = 'continuous';
-        if (capabilities.whiteBalanceMode) customSettings.whiteBalanceMode = 'continuous';
         
         if (Object.keys(customSettings).length > 0) {
             constraints.advanced.push(customSettings);
             await track.applyConstraints(constraints);
         }
         
-        statusDiv.innerText = "Midiendo... Presiona firmemente el dedo contra la cámara y el flash.";
+        statusDiv.innerText = "Midiendo... Pon tu dedo índice suavemente sobre el flash y el lente.";
         startTime = performance.now();
         
         if ('requestVideoFrameCallback' in video) {
@@ -246,13 +244,13 @@ function endTest() {
     }
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     
-    statusDiv.innerText = "Procesando biometría adaptativa móvil...";
+    statusDiv.innerText = "Procesando biometría por bloques de tiempo...";
     
     setTimeout(async () => {
         const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
         
-        if(rrIntervals.length < 10) {
-            statusDiv.innerText = `Error: Lectura inestable (${rrIntervals.length} latidos detectados). Cubre por completo el flash y la cámara con el índice sin presionar excesivamente duro.`;
+        if(rrIntervals.length < 15) {
+            statusDiv.innerText = `Error: Lectura inestable (${rrIntervals.length} latidos detectados). Coloca el dedo suavemente y de forma estable en la cámara trasera.`;
             resetUI();
             return;
         }
@@ -262,7 +260,7 @@ function endTest() {
         const bpm = Math.round(60000 / avgRR);
         
         rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM (Basado en ${rrIntervals.length} intervalos)`;
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM (Calculado sobre ${rrIntervals.length} latidos limpios)`;
         cloudStatus.innerText = "Enviando datos de recuperación a la nube...";
         resultDiv.style.display = 'block';
         
@@ -271,15 +269,16 @@ function endTest() {
     }, 600);
 }
 
+// 🧠 ALGORITMO DETECTOR MÓVIL POR VENTANAS DE TIEMPO LOCALES
 function calculateRRIntervals(signal, timestamps) {
     const rrIntervals = []; 
     let lastPeakTime = null; 
     const smoothSignal = []; 
-    const windowSize = 9; // Ventana ligeramente mayor para estabilizar ruido de flash
+    const windowSize = 6; 
     
-    if (signal.length < 30) return [];
+    if (signal.length < 50) return [];
 
-    // 1. Filtrado de Media Móvil Detrending
+    // 1. Filtro local de alta frecuencia (Suavizado base)
     for(let i = 0; i < signal.length; i++) {
         let start = Math.max(0, i - windowSize);
         let end = Math.min(signal.length, i + windowSize);
@@ -288,35 +287,52 @@ function calculateRRIntervals(signal, timestamps) {
         smoothSignal.push(signal[i] - (localMean / (end - start)));
     }
 
-    // 2. Umbral dinámico basado en desviación estándar para pantallas móviles encandiladas
-    const mean = smoothSignal.reduce((a, b) => a + b, 0) / smoothSignal.length;
-    const stdDev = Math.sqrt(smoothSignal.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b, 0) / smoothSignal.length);
-    const adaptiveThreshold = Math.max(stdDev * 0.5, 0.05); // Umbral ultra-sensible adaptativo
+    // 2. Escaneo de picos con Umbral Estadístico Móvil (Ventana local de 2 segundos de datos)
+    // Esto destruye el efecto del encandilamiento adaptándose al brillo del momento.
+    const sampleRateIdeal = 30; 
+    const localBlockSize = sampleRateIdeal * 2; 
 
-    // 3. Detección de picos
     for (let i = 1; i < smoothSignal.length - 1; i++) {
-        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > adaptiveThreshold) {
-            const currentPeakTime = timestamps[i];
+        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1]) {
             
-            if (lastPeakTime !== null) {
-                const rr = currentPeakTime - lastPeakTime;
+            // Calculamos ruido local centrado en el punto actual
+            let bStart = Math.max(0, i - Math.floor(localBlockSize/2));
+            let bEnd = Math.min(smoothSignal.length, i + Math.floor(localBlockSize/2));
+            
+            let localSum = 0;
+            for(let j = bStart; j < bEnd; j++) localSum += smoothSignal[j];
+            let localMean = localSum / (bEnd - bStart);
+            
+            let localVarianceSum = 0;
+            for(let j = bStart; j < bEnd; j++) localVarianceSum += Math.pow(smoothSignal[j] - localMean, 2);
+            let localStdDev = Math.sqrt(localVarianceSum / (bEnd - bStart));
+            
+            // Umbral dinámico adaptado localmente al micro-brillo del milisegundo actual
+            const localThreshold = Math.max(localStdDev * 0.4, 0.02);
+
+            if (smoothSignal[i] > localThreshold) {
+                const currentPeakTime = timestamps[i];
                 
-                // Rango fisiológico estricto (37 a 150 BPM)
-                if (rr >= 400 && rr <= 1600) { 
-                    if(rrIntervals.length > 0) {
-                        const prevRR = rrIntervals[rrIntervals.length - 1];
-                        // Filtro de estabilidad fisiológica instantánea (no puede variar más del 35% entre latidos adyacentes)
-                        if(Math.abs(rr - prevRR) / prevRR <= 0.35) { 
+                if (lastPeakTime !== null) {
+                    const rr = currentPeakTime - lastPeakTime;
+                    
+                    // Rango fisiológico (De 40 a 140 BPM basales)
+                    if (rr >= 430 && rr <= 1500) { 
+                        if(rrIntervals.length > 0) {
+                            const prevRR = rrIntervals[rrIntervals.length - 1];
+                            // Tolerancia del 38% para admitir arritmia sinusal respiratoria normal
+                            if(Math.abs(rr - prevRR) / prevRR <= 0.38) { 
+                                rrIntervals.push(rr); 
+                                lastPeakTime = currentPeakTime; 
+                            }
+                        } else {
                             rrIntervals.push(rr); 
                             lastPeakTime = currentPeakTime; 
                         }
-                    } else {
-                        rrIntervals.push(rr); 
-                        lastPeakTime = currentPeakTime; 
                     }
+                } else {
+                    lastPeakTime = currentPeakTime;
                 }
-            } else {
-                lastPeakTime = currentPeakTime;
             }
         }
     }
