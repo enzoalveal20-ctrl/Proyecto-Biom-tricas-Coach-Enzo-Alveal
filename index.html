@@ -265,55 +265,54 @@ function endTest() {
     }, 500); //[cite: 1]
 }
 
-// 🛠️ ALGORITMO OPTIMIZADO CON FILTRO PARA EVITAR EL DOBLE CONTEO
+// 🛠️ ALGORITMO OPTIMIZADO: CORRECCIÓN DE FLUJO DE HISTORIAL R-R
 function calculateRRIntervals(signal, timestamps) {
-    const rrIntervals = []; //[cite: 1]
-    let lastPeakTime = null; //[cite: 1]
-    const smoothSignal = []; //[cite: 1]
-    const windowSize = 7; // Incrementado ligeramente para un mejor suavizado de ruido fino
+    const rrIntervals = []; 
+    let lastPeakTime = null; 
+    const smoothSignal = []; 
+    const windowSize = 7; 
     
-    // Suavizado por media móvil local[cite: 1]
-    for(let i = 0; i < signal.length; i++) { //[cite: 1]
-        let start = Math.max(0, i - windowSize); //[cite: 1]
-        let end = Math.min(signal.length, i + windowSize); //[cite: 1]
-        let localMean = 0; //[cite: 1]
-        for(let j = start; j < end; j++) localMean += signal[j]; //[cite: 1]
-        smoothSignal.push(signal[i] - (localMean / (end - start))); //[cite: 1]
+    // Suavizado por media móvil local
+    for(let i = 0; i < signal.length; i++) { 
+        let start = Math.max(0, i - windowSize); 
+        let end = Math.min(signal.length, i + windowSize); 
+        let localMean = 0; 
+        for(let j = start; j < end; j++) localMean += signal[j]; 
+        smoothSignal.push(signal[i] - (localMean / (end - start))); 
     }
 
     // Definición de umbral adaptativo
     const maxVal = Math.max(...smoothSignal);
-    const minPeakThreshold = maxVal * 0.15; // Un pico debe ser al menos el 15% del pico más alto detectado
+    const minPeakThreshold = maxVal * 0.15; 
 
     for (let i = 1; i < smoothSignal.length - 1; i++) {
-        // Detección de picos locales[cite: 1]
+        // Detección de picos locales
         if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > minPeakThreshold) {
-            const currentPeakTime = timestamps[i]; //[cite: 1]
+            const currentPeakTime = timestamps[i]; 
             
             if (lastPeakTime !== null) {
-                const rr = currentPeakTime - lastPeakTime; //[cite: 1]
+                const rr = currentPeakTime - lastPeakTime; 
                 
-                // 🛑 VENTANA REFRACTARIA CRÍTICA:
-                // Ignorar de inmediato cualquier "latido" que ocurra antes de los 450 ms (Equivale a un límite fisiológico de 133 BPM en reposo).
-                // Esto elimina de raíz la lectura de la onda dicrótica y el ruido de alta frecuencia del canal.
+                // 🛑 VENTANA REFRACTARIA CRÍTICA
                 if (rr >= 450 && rr <= 1500) { 
-                    if(rrIntervals.length > 0) { //[cite: 1]
-                        const prevRR = rrIntervals[rrIntervals.length - 1]; //[cite: 1]
-                        // Filtro de consistencia fisiológica (Evita variaciones absurdas mayores al 25% entre latidos seguidos)
-                        if(Math.abs(rr - prevRR) / prevRR <= 0.25) { 
-                            rrIntervals.push(rr); //[cite: 1]
+                    if(rrIntervals.length > 0) { 
+                        const prevRR = rrIntervals[rrIntervals.length - 1]; 
+                        // Filtro dinámico optimizado al 35% para tolerar variaciones HRV fisiológicas sanas
+                        if(Math.abs(rr - prevRR) / prevRR <= 0.35) { 
+                            rrIntervals.push(rr); 
+                            lastPeakTime = currentPeakTime; // Mover el punto de referencia SOLO si el latido es válido
                         }
                     } else {
-                        rrIntervals.push(rr); //[cite: 1]
+                        rrIntervals.push(rr); 
+                        lastPeakTime = currentPeakTime; // Mover el punto de referencia SOLO si el latido es válido
                     }
-                    lastPeakTime = currentPeakTime; // Actualizar solo cuando se confirma un latido real válido
                 }
             } else {
-                lastPeakTime = currentPeakTime; //[cite: 1]
+                lastPeakTime = currentPeakTime; 
             }
         }
     }
-    return rrIntervals; //[cite: 1]
+    return rrIntervals; 
 }
 
 function calculateRMSSD(rrIntervals) { //[cite: 1]
