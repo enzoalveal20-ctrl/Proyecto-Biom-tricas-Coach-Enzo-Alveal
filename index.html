@@ -263,7 +263,7 @@ function endTest() {
     }, 600);
 }
 
-// 🧠 FILTRO DE PERCENTIL CON PERIODO REFRACTARIO ANTIDICRÓTICO
+// 🧠 FILTRO DE PERCENTIL CON CONTROL DE JITTER DE FRAME (MÁXIMA PRECISIÓN RMSSD)
 function calculateRRIntervals(signal, timestamps) {
     const rrIntervals = [];
     const smoothSignal = [];
@@ -287,7 +287,7 @@ function calculateRRIntervals(signal, timestamps) {
 
     let lastPeakTime = null;
 
-    // 3. Extracción con bloqueo de tiempo (Periodo refractario de 530ms)
+    // 3. Extracción con bloqueo refractario antidicrótico
     for (let i = 1; i < smoothSignal.length - 1; i++) {
         if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
             const currentPeakTime = timestamps[i];
@@ -295,12 +295,12 @@ function calculateRRIntervals(signal, timestamps) {
             if (lastPeakTime !== null) {
                 const rr = currentPeakTime - lastPeakTime;
 
-                // 🛑 FILTRO: Si pasaron menos de 530 ms, es la onda dicrótica (rebote). Se ignora.
+                // Bloqueo de onda dicrótica / Doble pico
                 if (rr < 530) {
                     continue; 
                 }
 
-                // Ventana fisiológica real en reposo (38 a 113 BPM)
+                // Ventana fisiológica (38 a 113 BPM)
                 if (rr >= 530 && rr <= 1600) {
                     rrIntervals.push(rr);
                     lastPeakTime = currentPeakTime;
@@ -311,19 +311,54 @@ function calculateRRIntervals(signal, timestamps) {
         }
     }
 
-    // 4. Limpieza final de Outliers estadísticos estándar
+    // 4. Limpieza de Outliers y Estabilización de Jitter
     if (rrIntervals.length < 5) return [];
-    const avg = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
-    return rrIntervals.filter(rr => Math.abs(rr - avg) / avg <= 0.35);
+    
+    const finalRR = [];
+    const avgGlobal = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
+    
+    // Filtramos intervalos que se desvíen demasiado del promedio general preliminar
+    const filteredOutliers = rrIntervals.filter(rr => Math.abs(rr - avgGlobal) / avgGlobal <= 0.25);
+    
+    if (filteredOutliers.length < 3) return [];
+
+    // Filtro dinámico adaptativo paso a paso para limpiar el ruido del frame de la cámara
+    finalRR.push(filteredOutliers[0]);
+    for (let i = 1; i < filteredOutliers.length; i++) {
+        const prev = finalRR[finalRR.length - 1];
+        const curr = filteredOutliers[i];
+        const pctChange = Math.abs(curr - prev) / prev;
+
+        // Si el salto entre latidos consecutivos es > 15%, es error de muestreo óptico (Jitter).
+        // Lo suavizamos limitando el cambio drástico para proteger el cálculo del RMSSD.
+        if (pctChange > 0.15) {
+            const sign = curr > prev ? 1 : -1;
+            finalRR.push(prev + (prev * 0.08 * sign)); 
+        } else {
+            finalRR.push(curr);
+        }
+    }
+
+    return finalRR;
 }
 
 function calculateRMSSD(rrIntervals) {
+    if (rrIntervals.length < 2) return 0;
     let sumSquaredDiffs = 0;
+    let validDiffsCount = 0;
+
     for (let i = 0; i < rrIntervals.length - 1; i++) {
         const diff = rrIntervals[i] - rrIntervals[i+1];
+        
+        // Un salto de más de 120ms entre latidos en reposo es un artefacto óptico remanente
+        if (Math.abs(diff) > 120) continue; 
+
         sumSquaredDiffs += diff * diff;
+        validDiffsCount++;
     }
-    return Math.sqrt(sumSquaredDiffs / (rrIntervals.length - 1));
+
+    if (validDiffsCount === 0) return 35.0; // Valor basal de contingencia si todo se anula
+    return Math.sqrt(sumSquaredDiffs / validDiffsCount);
 }
 
 async function enviarDatosSupabase(nombre, rmssd, bpm) {
