@@ -287,7 +287,7 @@ function calculateRRIntervals(signal, timestamps) {
 
     let lastPeakTime = null;
 
-    // 3. Extracción con bloqueo de tiempo (Periodo refractario de 500ms)
+    // 3. Extracción con bloqueo de tiempo (Periodo refractario de 530ms)
     for (let i = 1; i < smoothSignal.length - 1; i++) {
         if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
             const currentPeakTime = timestamps[i];
@@ -295,7 +295,7 @@ function calculateRRIntervals(signal, timestamps) {
             if (lastPeakTime !== null) {
                 const rr = currentPeakTime - lastPeakTime;
 
-                // 🛑 FILTRO CRUCIAL: Si pasaron menos de 530 ms, es la onda dicrótica/doble pico. Se ignora.
+                // 🛑 FILTRO: Si pasaron menos de 530 ms, es la onda dicrótica (rebote). Se ignora.
                 if (rr < 530) {
                     continue; 
                 }
@@ -315,7 +315,7 @@ function calculateRRIntervals(signal, timestamps) {
     if (rrIntervals.length < 5) return [];
     const avg = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
     return rrIntervals.filter(rr => Math.abs(rr - avg) / avg <= 0.35);
-}}
+}
 
 function calculateRMSSD(rrIntervals) {
     let sumSquaredDiffs = 0;
