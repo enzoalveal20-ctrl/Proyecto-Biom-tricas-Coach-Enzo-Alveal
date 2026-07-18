@@ -296,12 +296,12 @@ function calculateRRIntervals(signal, timestamps) {
                 const rr = currentPeakTime - lastPeakTime;
 
                 // Bloqueo de onda dicrótica / Doble pico
-                if (rr < 530) {
+                if (rr < 600) {
                     continue; 
                 }
 
-                // Ventana fisiológica (38 a 113 BPM)
-                if (rr >= 530 && rr <= 1600) {
+                // Ventana fisiológica (38 a 100 BPM)
+                if (rr >= 600 && rr <= 1600) {
                     rrIntervals.push(rr);
                     lastPeakTime = currentPeakTime;
                 }
