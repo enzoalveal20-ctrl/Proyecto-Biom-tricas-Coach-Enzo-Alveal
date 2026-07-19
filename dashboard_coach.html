@@ -23,13 +23,14 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
+            <!-- Panel Izquierdo: Lista de Alumnos -->
             <div class="bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800">
                 <h2 class="text-lg font-bold mb-4 text-[#00adb5] border-b border-gray-700 pb-2">Estado Diario de Alumnos</h2>
                 <div id="loadingText" class="text-gray-500 text-center py-4">Cargando datos desde la nube...</div>
-                <div id="athletesList" class="space-y-3">
-                    </div>
+                <div id="athletesList" class="space-y-3"></div>
             </div>
 
+            <!-- Panel Derecho: Gráfica y Métricas del Alumno Seleccionado -->
             <div class="lg:col-span-2 bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800 flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -61,32 +62,33 @@
         </div>
     </div>
 
-<!-- Reemplaza todo desde la etiqueta <script> en tu archivo actual de GitHub -->
 <script>
-// 1. Credenciales de Supabase consolidadas
+// 1. Inicialización y Credenciales de Supabase
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Reemplaza solo las primeras líneas de tu bloque <script>:
 let rawData = [];
 let athletesData = {};
 let hrvChartInstance = null;
 let currentSelectedAthlete = ""; 
 
-// Esperamos un pestañeo (100ms) para garantizar que la librería de Supabase esté inyectada en el navegador
+// Arranque protegido esperando la inyección de librerías en ventana global
 setTimeout(() => {
-    console.log("🚀 [CONSOLA BIOMÉTRICA] Iniciando Dashboard con librerías cargadas...");
+    console.log("🚀 [CONSOLA BIOMÉTRICA] Iniciando Dashboard...");
     loadDataFromSupabase();
-}, 100);
+}, 150);
 
 document.getElementById('refreshBtn').addEventListener('click', loadDataFromSupabase);
 
 async function loadDataFromSupabase() {
-    console.log("📡 Conectando a Supabase...");
-    document.getElementById('loadingText').style.display = 'block';
-    document.getElementById('loadingText').innerText = "Cargando datos desde la nube...";
+    console.log("📡 Intentando conectar con Supabase...");
+    const loadingEl = document.getElementById('loadingText');
+    if (loadingEl) {
+        loadingEl.style.display = 'block';
+        loadingEl.innerText = "Cargando datos desde la nube...";
+    }
     document.getElementById('athletesList').innerHTML = '';
     
     try {
@@ -97,14 +99,15 @@ async function loadDataFromSupabase() {
             
         if (error) throw error;
         
-        console.log("✅ Datos recibidos de Supabase:", data);
+        console.log("✅ Datos recuperados de forma exitosa:", data);
         rawData = data;
         processAthletesData();
         renderAthletesList();
-        document.getElementById('loadingText').style.display = 'none';
+        
+        if (loadingEl) loadingEl.style.display = 'none';
     } catch (err) {
-        console.error("❌ Error al leer Supabase:", err);
-        document.getElementById('loadingText').innerText = "Error de conexión con la base de datos o tabla vacía.";
+        console.error("❌ Error crítico en consulta a Supabase:", err);
+        if (loadingEl) loadingEl.innerText = "Error de conexión o tabla inaccesible.";
     }
 }
 
@@ -119,7 +122,6 @@ function processAthletesData() {
     });
 }
 
-// Renderizado de lista con Semáforo Dinámico Avanzado (Basado en el SWC del grupo o individuo)
 function renderAthletesList() {
     const listContainer = document.getElementById('athletesList');
     listContainer.innerHTML = '';
@@ -136,7 +138,7 @@ function renderAthletesList() {
         const latestRecord = records[records.length - 1];
         const hrvValues = records.map(r => r.hrv_rmssd);
         
-        // Ejecutamos análisis predictivo para el color del borde del atleta
+        // Ejecución del motor SWC para determinar el color de la alerta visual
         const analisis = calcularSWCyRegresion(hrvValues);
         
         let borderColor = "border-green-500";
@@ -144,7 +146,6 @@ function renderAthletesList() {
             borderColor = analisis.diagnostico.includes("Aguda") ? "border-red-500" : "border-yellow-500";
         }
 
-        // Formatear fecha corta para la vista previa de la lista
         const fechaCorta = formatearFechaCronologica(latestRecord.fecha);
 
         const itemHtml = `
@@ -162,7 +163,6 @@ function renderAthletesList() {
         listContainer.innerHTML += itemHtml;
     });
 
-    // Mantener al atleta seleccionado tras actualizar o por defecto al primero
     if (athleteNames.length > 0) {
         selectAthlete(currentSelectedAthlete && athletesData[currentSelectedAthlete] ? currentSelectedAthlete : athleteNames[0]);
     }
@@ -174,16 +174,13 @@ function selectAthlete(name) {
     const latestRecord = records[records.length - 1];
     const hrvValues = records.map(r => r.hrv_rmssd);
 
-    // Ejecutar motor matemático estadístico (SWC + Regresión)
     const analisis = calcularSWCyRegresion(hrvValues);
 
-    // Actualizar paneles de texto en el Dashboard
     document.getElementById('selectedAthleteName').innerText = name;
     document.getElementById('metricLatestHrv').innerText = `${latestRecord.hrv_rmssd} ms`;
     document.getElementById('metricAvgHrv').innerText = `${analisis.promedioBasal} ms`;
     document.getElementById('metricPulse').innerText = `${latestRecord.pulso_bpm} BPM`;
 
-    // Actualizar el Badge del Semáforo de Recuperación Basal con diagnóstico predictivo
     const statusBadge = document.getElementById('selectedAthleteStatus');
     statusBadge.innerText = analisis.diagnostico.toUpperCase();
     
@@ -200,11 +197,9 @@ function selectAthlete(name) {
     renderChart(records);
 }
 
-// 📈 Mapeo Visual Cronológico con Opción Interactiva de Borrado
 function renderChart(records) {
     const ctx = document.getElementById('hrvChart').getContext('2d');
     
-    // Formateo cronológico para evitar colapsos en el eje X
     const labels = records.map(r => formatearFechaCronologica(r.fecha));
     const hrvValues = records.map(r => r.hrv_rmssd);
     const pulseValues = records.map(r => r.pulso_bpm);
@@ -240,13 +235,12 @@ function renderChart(records) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            // 🛑 GESTIÓN EXCLUSIVA INTERACTIVA: Doble clic sobre un nodo del gráfico para borrar un test fallido
             onClick: async (e, elements) => {
                 if (elements.length > 0) {
                     const index = elements[0].index;
                     const registroSeleccionado = records[index];
                     
-                    const confirmar = confirm(`¿Deseas eliminar la medición del día ${labels[index]} por considerarla un artefacto o error de toma?`);
+                    const confirmar = confirm(`¿Deseas eliminar la medición del día ${labels[index]} por considerarla un error de toma?`);
                     if (confirmar) {
                         await eliminarMedicion(registroSeleccionado.id);
                     }
@@ -278,7 +272,7 @@ function renderChart(records) {
                 legend: { labels: { color: '#fff' } },
                 tooltip: {
                     callbacks: {
-                        footer: () => "💡 Tip: Haz clic en el punto para borrar esta medición"
+                        footer: () => "💡 Clic en el punto para borrar esta medición"
                     }
                 }
             }
@@ -286,7 +280,6 @@ function renderChart(records) {
     });
 }
 
-// 🧮 MOTOR MATEMÁTICO: SWC (Smallest Worthwhile Change) & Regresión Lineal
 function calcularSWCyRegresion(valoresRMSSD) {
     const total = valoresRMSSD.reduce((acc, v) => acc + v, 0);
     const promedio = total / valoresRMSSD.length;
@@ -294,21 +287,18 @@ function calcularSWCyRegresion(valoresRMSSD) {
     if (valoresRMSSD.length < 5) {
         return {
             promedioBasal: promedio.toFixed(1),
-            diagnostico: "Faltan datos basales (Mín. 5 mediciones)",
+            diagnostico: "Faltan datos basales (Mín. 5)",
             alerta: false,
             error: true
         };
     }
 
-    // 1. Desviación Estándar (Varianza Biológica)
     const varianza = valoresRMSSD.reduce((acc, v) => acc + Math.pow(v - promedio, 2), 0) / valoresRMSSD.length;
     const desviacionEstandar = Math.sqrt(varianza);
 
-    // 2. Umbral de Cambio Útil Mínimo (SWC a magnitud 0.5 para control adaptativo de la fatiga)
     const swcThreshold = 0.5 * desviacionEstandar;
     const limiteInferiorSWC = promedio - swcThreshold;
 
-    // 3. Modelo Matemático de Regresión Lineal Simple (Y = mx + b) sobre la línea temporal
     const n = valoresRMSSD.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < n; i++) {
@@ -319,16 +309,15 @@ function calcularSWCyRegresion(valoresRMSSD) {
     }
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
 
-    // 4. Diagnóstico Clínico-Deportivo Automático del Estado Autonómico
     const ultimoHRV = valoresRMSSD[valoresRMSSD.length - 1];
     let estadoAtleta = "RECUPERADO / ADAPTACIÓN ÓPTIMA";
     let proyeccionAlerta = false;
 
     if (ultimoHRV < limiteInferiorSWC) {
-        estadoAtleta = "FATIGA AGUDA DETECTADA (Fuera de rango SWC)";
+        estadoAtleta = "FATIGA AGUDA (Fuera de SWC)";
         proyeccionAlerta = true;
     } else if (pendiente < -1.2) {
-        estadoAtleta = "PRECAUCIÓN: Tendencia Lineal a la baja (Fatiga Acumulada)";
+        estadoAtleta = "PRECAUCIÓN (Fatiga Acumulada)";
         proyeccionAlerta = true;
     }
 
@@ -341,18 +330,16 @@ function calcularSWCyRegresion(valoresRMSSD) {
     };
 }
 
-// 🕒 Formateador Cronológico de Marcas de Tiempo
 function formatearFechaCronologica(fechaStr) {
     try {
         const f = new Date(fechaStr);
-        if (isNaN(f.getTime())) return fechaStr; // Salvaguarda por si el string viene con formato plano alternativo
+        if (isNaN(f.getTime())) return fechaStr;
         return `${f.getDate()}/${f.getMonth() + 1} ${String(f.getHours()).padStart(2, '0')}:${String(f.getMinutes()).padStart(2, '0')}`;
     } catch {
         return fechaStr;
     }
 }
 
-// 🗑️ Función de Eliminación Remota Directa en Supabase
 async function eliminarMedicion(idMedicion) {
     try {
         const { error } = await supabase
@@ -361,14 +348,12 @@ async function eliminarMedicion(idMedicion) {
             .eq('id', idMedicion);
 
         if (error) throw error;
-
-        // Recarga de manera reactiva los datos directamente desde la nube para recalcular las tendencias
         await loadDataFromSupabase();
     } catch (err) {
-        console.error("Error al eliminar el registro defectuoso:", err.message);
-        alert("No se pudo eliminar la medición de la base de datos.");
+        console.error("Error al eliminar registro:", err.message);
+        alert("No se pudo eliminar de la base de datos.");
     }
 }
-</scrip>
+</script>
 </body>
 </html>
