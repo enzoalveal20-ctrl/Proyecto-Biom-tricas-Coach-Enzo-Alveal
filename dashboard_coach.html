@@ -72,34 +72,36 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let rawData = [];
 let athletesData = {};
 let hrvChartInstance = null;
-let currentSelectedAthlete = ""; // Rastreador del atleta activo
+let currentSelectedAthlete = ""; 
 
-document.addEventListener('DOMContentLoaded', initDashboard);
+// Ejecución directa inmediata para evitar problemas de sincronización de la página
+console.log("🚀 Iniciando Dashboard...");
+loadDataFromSupabase();
+
 document.getElementById('refreshBtn').addEventListener('click', loadDataFromSupabase);
 
-async function initDashboard() {
-    await loadDataFromSupabase();
-}
-
 async function loadDataFromSupabase() {
+    console.log("📡 Conectando a Supabase...");
     document.getElementById('loadingText').style.display = 'block';
+    document.getElementById('loadingText').innerText = "Cargando datos desde la nube...";
     document.getElementById('athletesList').innerHTML = '';
     
     try {
         const { data, error } = await supabase
             .from('registros_hrv')
             .select('*')
-            .order('fecha', { ascending: true }); // Orden cronológico nativo
+            .order('fecha', { ascending: true });
             
         if (error) throw error;
         
+        console.log("✅ Datos recibidos de Supabase:", data);
         rawData = data;
         processAthletesData();
         renderAthletesList();
         document.getElementById('loadingText').style.display = 'none';
     } catch (err) {
-        console.error("Error al leer Supabase:", err);
-        document.getElementById('loadingText').innerText = "Error de conexión con la base de datos.";
+        console.error("❌ Error al leer Supabase:", err);
+        document.getElementById('loadingText').innerText = "Error de conexión con la base de datos o tabla vacía.";
     }
 }
 
