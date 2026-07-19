@@ -63,11 +63,12 @@
     </div>
 
 <script>
-// 1. Inicialización y Credenciales de Supabase
+// 1. Inicialización y Credenciales con Nombre de Variable Corregido
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Cambiamos el nombre aquí para evitar el conflicto de duplicados
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let rawData = [];
 let athletesData = {};
@@ -92,7 +93,8 @@ async function loadDataFromSupabase() {
     document.getElementById('athletesList').innerHTML = '';
     
     try {
-        const { data, error } = await supabase
+        // Usamos la variable corregida aquí también
+        const { data, error } = await supabaseClient
             .from('registros_hrv')
             .select('*')
             .order('fecha', { ascending: true });
@@ -342,7 +344,8 @@ function formatearFechaCronologica(fechaStr) {
 
 async function eliminarMedicion(idMedicion) {
     try {
-        const { error } = await supabase
+        // Cambiado a supabaseClient
+        const { error } = await supabaseClient
             .from('registros_hrv')
             .delete()
             .eq('id', idMedicion);
