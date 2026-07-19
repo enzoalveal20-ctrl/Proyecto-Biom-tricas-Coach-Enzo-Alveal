@@ -69,14 +69,17 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
     
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Reemplaza solo las primeras líneas de tu bloque <script>:
 let rawData = [];
 let athletesData = {};
 let hrvChartInstance = null;
 let currentSelectedAthlete = ""; 
 
-// Ejecución directa inmediata para evitar problemas de sincronización de la página
-console.log("🚀 Iniciando Dashboard...");
-loadDataFromSupabase();
+// Esperamos un pestañeo (100ms) para garantizar que la librería de Supabase esté inyectada en el navegador
+setTimeout(() => {
+    console.log("🚀 [CONSOLA BIOMÉTRICA] Iniciando Dashboard con librerías cargadas...");
+    loadDataFromSupabase();
+}, 100);
 
 document.getElementById('refreshBtn').addEventListener('click', loadDataFromSupabase);
 
