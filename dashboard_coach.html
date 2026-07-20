@@ -271,6 +271,7 @@ function calcularSWCyRegresion(valoresCompletoRMSSD, valoresCompletoPulso) {
         };
     }
 
+    // 1. VENTANA MÓVIL ESTRICTA DE 14 DÍAS PARA LÍNEA BASE Y SWC
     const ventanaDatos = totalMediciones > 14 ? valoresCompletoRMSSD.slice(-14) : valoresCompletoRMSSD;
     const n = ventanaDatos.length;
     const promedio = ventanaDatos.reduce((acc, v) => acc + v, 0) / n;
@@ -278,37 +279,21 @@ function calcularSWCyRegresion(valoresCompletoRMSSD, valoresCompletoPulso) {
     const desviacionEstandar = Math.sqrt(varianza) || 1;
     const limiteInferiorSWC = promedio - (0.5 * desviacionEstandar);
 
+    // 2. MÉTRICAS AVANZADAS SOLICITADAS
     const ultimoHRV = valoresCompletoRMSSD[totalMediciones - 1];
     const ultimoPulso = valoresCompletoPulso[totalMediciones - 1];
 
+    // Índice de Balance Autonómico (IBA)
     const ibaCalculado = (ultimoHRV / ultimoPulso).toFixed(2);
 
+    // Coeficiente de Variación de los últimos 7 días (CV-RMSSD)
     const ventana7d = totalMediciones > 7 ? valoresCompletoRMSSD.slice(-7) : valoresCompletoRMSSD;
     const prom7d = ventana7d.reduce((a, b) => a + b, 0) / ventana7d.length;
     const var7d = ventana7d.reduce((acc, v) => acc + Math.pow(v - prom7d, 2), 0) / ventana7d.length;
     const de7d = Math.sqrt(var7d);
     const cvCalculado = ((de7d / prom7d) * 100).toFixed(1);
 
-    const promPulso7d = (totalMediciones > 7 ? valoresCompletoPulso.slice(-7) : valoresCompletoPulso).reduce((a,b)=>a+b,0) / (totalMediciones > 7 ? 7 : totalMediciones);
-    
-    let penalizacionHRV = 0;
-    if (ultimoHRV < prom7d) {
-        penalizacionHRV = ((prom7d - ultimoHRV) / prom7d) * 100 * 0.60;
-    }
-    let penalizacionPulso = 0;
-    if (ultimoPulso > promPulso7d) {
-        penalizacionPulso = ((ultimoPulso - promPulso7d) / promPulso7d) * 100 * 0.40;
-    }
-
-    let readinessCalculado = Math.round(100 - (penalizacionHRV + penalizacionPulso));
-    readinessCalculado = Math.max(10, Math.min(100, readinessCalculado));
-
-    let readinessTxt = "";
-    if (readinessCalculado >= 90) readinessTxt = "Estado de Gracia ⚡ (PR / Sparring)";
-    else if (readinessCalculado >= 70) readinessTxt = "Buen Estado 👍 (Carga Normal)";
-    else if (readinessCalculado >= 50) readinessTxt = "Fatiga Moderada ⚠️ (Vol -30%)";
-    else readinessTxt = "Alerta Descarga 🛑 (Descanso Activo)";
-
+    // 3. ANÁLISIS DE ESTADO Y PENDIENTE DE REGRESIÓN
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < n; i++) {
         sumX += i;
@@ -345,6 +330,38 @@ function calcularSWCyRegresion(valoresCompletoRMSSD, valoresCompletoPulso) {
         proyeccionDiasStatus = "Estable 📈";
     }
 
+    // 4. ALGORITMO PONDERADO CON CAPA DE SEGURIDAD PARA READINESS
+    const promPulso7d = (totalMediciones > 7 ? valoresCompletoPulso.slice(-7) : valoresCompletoPulso).reduce((a,b)=>a+b,0) / (totalMediciones > 7 ? 7 : totalMediciones);
+    
+    let penalizacionHRV = 0;
+    if (ultimoHRV < prom7d) {
+        penalizacionHRV = ((prom7d - ultimoHRV) / prom7d) * 100 * 0.60;
+    }
+    let penalizacionPulso = 0;
+    if (ultimoPulso > promPulso7d) {
+        penalizacionPulso = ((ultimoPulso - promPulso7d) / promPulso7d) * 100 * 0.40;
+    }
+
+    let readinessCalculado = Math.round(100 - (penalizacionHRV + penalizacionPulso));
+
+    // CORRECCIÓN BIOMÉTRICA: Si hay banderas rojas activas en el SWC o CV, forzamos zona segura de fatiga.
+    if (estadoAtleta.includes("FATIGA AGUDA")) {
+        // Asignamos una puntuación coherente con la gravedad de la caída bajo el SWC
+        readinessCalculado = Math.min(readinessCalculado, 45); 
+    } else if (estadoAtleta.includes("FATIGA CRÓNICA")) {
+        readinessCalculado = Math.min(readinessCalculado, 30);
+    } else if (estadoAtleta.includes("PRECAUCIÓN")) {
+        readinessCalculado = Math.min(readinessCalculado, 65);
+    }
+
+    readinessCalculado = Math.max(10, Math.min(100, readinessCalculado));
+
+    let readinessTxt = "";
+    if (readinessCalculado >= 90) readinessTxt = "Estado de Gracia ⚡ (PR / Sparring)";
+    else if (readinessCalculado >= 70) readinessTxt = "Buen Estado 👍 (Carga Normal)";
+    else if (readinessCalculado >= 50) readinessTxt = "Fatiga Moderada ⚠️ (Vol -30%)";
+    else readinessTxt = "Alerta Descarga 🛑 (Descanso Activo)";
+
     return {
         promedioBasal: promedio.toFixed(1),
         limiteInferiorSWC: limiteInferiorSWC.toFixed(1),
@@ -359,7 +376,6 @@ function calcularSWCyRegresion(valoresCompletoRMSSD, valoresCompletoPulso) {
         readinessTxt: readinessTxt
     };
 }
-
 function renderChart(records, analisis) {
     const ctx = document.getElementById('hrvChart').getContext('2d');
     
