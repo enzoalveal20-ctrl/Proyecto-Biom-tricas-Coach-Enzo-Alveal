@@ -39,20 +39,38 @@
                         <span id="selectedAthleteStatus" class="px-3 py-1 rounded-full text-xs font-bold"></span>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="bg-[#252525] p-3 rounded-lg text-center">
-                            <span class="text-xs text-gray-400 block">Último HRV</span>
-                            <span id="metricLatestHrv" class="text-xl font-bold text-[#00adb5]">-</span>
-                        </div>
-                        <div class="bg-[#252525] p-3 rounded-lg text-center">
-                            <span class="text-xs text-gray-400 block">Promedio HRV</span>
-                            <span id="metricAvgHrv" class="text-xl font-bold text-gray-200">-</span>
-                        </div>
-                        <div class="bg-[#252525] p-3 rounded-lg text-center">
-                            <span class="text-xs text-gray-400 block">FC Reposo</span>
-                            <span id="metricPulse" class="text-xl font-bold text-red-400">-</span>
-                        </div>
-                    </div>
+<!-- Grid Superior de Métricas Fisiológicas -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+    <!-- Tarjeta 1: Último Control -->
+    <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Último HRV</p>
+        <p id="metricLatestHrv" class="text-2xl font-black text-[#00adb5] mt-1">-</p>
+    </div>
+    
+    <!-- Tarjeta 2: Ventana Móvil Basal -->
+    <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Línea Base Basal</p>
+        <p id="metricAvgHrv" class="text-2xl font-black text-white mt-1">-</p>
+    </div>
+
+    <!-- Tarjeta 3: NUEVO - Rango SWC Óptimo -->
+    <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Umbral Mín SWC</p>
+        <p id="metricSwcRange" class="text-2xl font-black text-emerald-400 mt-1">-</p>
+    </div>
+    
+    <!-- Tarjeta 4: Frecuencia Cardíaca -->
+    <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">FC Reposo</p>
+        <p id="metricPulse" class="text-2xl font-black text-rose-400 mt-1">-</p>
+    </div>
+
+    <!-- Tarjeta 5: NUEVO - Alerta de Tendencia Crítica -->
+    <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Predicción Riesgo</p>
+        <p id="metricRiskTrend" class="text-lg font-black text-amber-400 mt-2">-</p>
+    </div>
+</div>
 
                     <div class="bg-[#252525] p-4 rounded-lg min-h-[300px] flex items-center justify-center">
                         <canvas id="hrvChart"></canvas>
@@ -168,18 +186,26 @@ function renderAthletesList() {
     }
 }
 
+// Modifica selectAthlete para rellenar las nuevas tarjetas
 function selectAthlete(name) {
     currentSelectedAthlete = name;
     const records = athletesData[name];
     const latestRecord = records[records.length - 1];
+    
+    // Extraemos solo los valores brutos de HRV de TODO el historial para el gráfico
     const hrvValues = records.map(r => r.hrv_rmssd);
 
+    // Ejecutamos el motor fisiológico avanzado
     const analisis = calcularSWCyRegresion(hrvValues);
 
     document.getElementById('selectedAthleteName').innerText = name;
     document.getElementById('metricLatestHrv').innerText = `${latestRecord.hrv_rmssd} ms`;
     document.getElementById('metricAvgHrv').innerText = `${analisis.promedioBasal} ms`;
     document.getElementById('metricPulse').innerText = `${latestRecord.pulso_bpm} BPM`;
+    
+    // Rellenamos los dos nuevos cuadros
+    document.getElementById('metricSwcRange').innerText = analisis.error ? "-" : `>= ${analisis.limiteInferiorSWC} ms`;
+    document.getElementById('metricRiskTrend').innerText = analisis.proyeccionDiasStatus;
 
     const statusBadge = document.getElementById('selectedAthleteStatus');
     statusBadge.innerText = analisis.diagnostico.toUpperCase();
@@ -197,160 +223,80 @@ function selectAthlete(name) {
     renderChart(records, analisis);
 }
 
-function renderChart(records, analisis) {
-    const ctx = document.getElementById('hrvChart').getContext('2d');
-    
-    const labels = records.map(r => formatearFechaCronologica(r.fecha));
-    const hrvValues = records.map(r => r.hrv_rmssd);
-    const pulseValues = records.map(r => r.pulso_bpm);
+// Rediseño matemático del cálculo: Ventana Móvil de 14 días + Ecuación Predictiva
+function calcularSWCyRegresion(valoresCompletoRMSSD) {
+    const totalMediciones = valoresCompletoRMSSD.length;
 
-    // Generar línea de regresión lineal para predecir tendencia visual
-    const trendValues = [];
-    const n = hrvValues.length;
-    const totalHrv = hrvValues.reduce((acc, v) => acc + v, 0);
-    const avgHrv = totalHrv / n;
-    
+    if (totalMediciones < 5) {
+        return {
+            promedioBasal: (valoresCompletoRMSSD.reduce((a,b)=>a+b,0)/totalMediciones || 0).toFixed(1),
+            diagnostico: "Faltan datos basales (Mín. 5)",
+            alerta: false,
+            error: true,
+            proyeccionDiasStatus: "Datos Insuf."
+        };
+    }
+
+    // APLICACIÓN DE VENTANA MÓVIL: Si hay más de 14 datos, recortamos estrictamente los últimos 14 para calcular la línea base
+    const ventanaDatos = totalMediciones > 14 ? valoresCompletoRMSSD.slice(-14) : valoresCompletoRMSSD;
+    const n = ventanaDatos.length;
+
+    const totalBasal = ventanaDatos.reduce((acc, v) => acc + v, 0);
+    const promedio = totalBasal / n;
+
+    const varianza = ventanaDatos.reduce((acc, v) => acc + Math.pow(v - promedio, 2), 0) / n;
+    const desviacionEstandar = Math.sqrt(varianza) || 1; // Control de división por cero
+
+    // Coeficiente SWC estándar para atletas (0.5 de la DE)
+    const swcThreshold = 0.5 * desviacionEstandar;
+    const limiteInferiorSWC = promedio - swcThreshold;
+
+    // Cálculo de la pendiente matemática de la tendencia (Regresión Lineal en la ventana activa)
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < n; i++) {
         sumX += i;
-        sumY += hrvValues[i];
-        sumXY += i * hrvValues[i];
+        sumY += ventanaDatos[i];
+        sumXY += i * ventanaDatos[i];
         sumXX += i * i;
     }
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX) || 0;
-    const intercepto = avgHrv - pendiente * ((n - 1) / 2);
 
-    for (let i = 0; i < n; i++) {
-        trendValues.push(Number((pendiente * i + intercepto).toFixed(1)));
-    }
+    const ultimoHRV = valoresCompletoRMSSD[totalMediciones - 1];
+    let estadoAtleta = "RECUPERADO / ADAPTACIÓN ÓPTIMA";
+    let proyeccionAlerta = false;
+    let proyeccionDiasStatus = "Estable";
 
-    if (hrvChartInstance) {
-        hrvChartInstance.destroy();
-    }
-
-    // Configuración de Líneas de Referencia e Intervalos del SWC
-    const mostrarSWC = !analisis.error;
-    const valPromedio = mostrarSWC ? Number(analisis.promedioBasal) : null;
-    const valInferior = mostrarSWC ? Number(analisis.limiteInferiorSWC) : null;
-
-    hrvChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Variabilidad (HRV RMSSD) [Eje Izquierdo]',
-                    data: hrvValues,
-                    borderColor: '#00adb5',
-                    backgroundColor: 'rgba(0, 173, 181, 0.1)',
-                    pointBackgroundColor: '#00adb5',
-                    pointRadius: 5,
-                    tension: 0.2,
-                    fill: false,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Tendencia Lineal HRV',
-                    data: trendValues,
-                    borderColor: 'rgba(255, 255, 255, 0.35)',
-                    borderDash: [4, 4],
-                    pointRadius: 0,
-                    tension: 0,
-                    fill: false,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Frecuencia Cardíaca (BPM) [Eje Derecho]',
-                    data: pulseValues,
-                    borderColor: '#f87171',
-                    pointBackgroundColor: '#f87171',
-                    borderDash: [2, 2],
-                    pointRadius: 4,
-                    tension: 0.2,
-                    fill: false,
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            onClick: async (e, elements) => {
-                if (elements.length > 0) {
-                    const index = elements[0].index;
-                    const registroSeleccionado = records[index];
-                    
-                    const confirmar = confirm(`¿Deseas eliminar la medición del día ${labels[index]} por considerarla un error de toma?`);
-                    if (confirmar) {
-                        await eliminarMedicion(registroSeleccionado.id);
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#00adb5' },
-                    title: { display: true, text: 'HRV (ms)', color: '#00adb5', font: { weight: 'bold' } }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    grid: { drawOnChartArea: false }, 
-                    ticks: { color: '#f87171' },
-                    title: { display: true, text: 'Pulso (BPM)', color: '#f87171', font: { weight: 'bold' } }
-                },
-                x: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#ccc', maxRotation: 45, minRotation: 45 }
-                }
-            },
-            plugins: {
-                legend: { labels: { color: '#fff', fontSize: 11 } },
-                annotation: mostrarSWC ? {
-                    annotations: {
-                        boxSWC: {
-                            type: 'box',
-                            yMin: valInferior,
-                            yMax: valPromedio + (valPromedio - valInferior), 
-                            backgroundColor: 'rgba(16, 185, 129, 0.04)',
-                            borderColor: 'rgba(16, 185, 129, 0.2)',
-                            borderWidth: 1,
-                            label: {
-                                display: true,
-                                content: 'Zona Óptima SWC',
-                                position: 'start',
-                                color: 'rgba(16, 185, 129, 0.6)',
-                                font: { size: 10 }
-                            }
-                        }
-                    }
-                } : {},
-                tooltip: {
-                    callbacks: {
-                        footer: () => "💡 Clic en el punto para borrar esta medición"
-                    }
-                }
-            }
+    // Evaluar estado fisiológico
+    if (ultimoHRV < limiteInferiorSWC) {
+        estadoAtleta = "FATIGA AGUDA (Fuera de SWC)";
+        proyeccionAlerta = true;
+        proyeccionDiasStatus = "Zona de Riesgo 🚨";
+    } else if (pendiente < 0) {
+        // Si la tendencia va a la baja, estimamos matemáticamente cuántos días le quedan antes de perforar el SWC
+        const distanciaAlRiesgo = ultimoHRV - limiteInferiorSWC;
+        const diasEstimados = Math.abs(distanciaAlRiesgo / pendiente);
+        
+        if (diasEstimados <= 3) {
+            estadoAtleta = "PRECAUCIÓN (Fatiga Acumulada)";
+            proyeccionAlerta = true;
+            proyeccionDiasStatus = `Riesgo en ~${Math.ceil(diasEstimados)} días 📉`;
+        } else {
+            proyeccionDiasStatus = `Estable (~${Math.ceil(diasEstimados)} d)`;
         }
-    });
-}
-
-function calcularSWCyRegresion(valoresRMSSD) {
-    const total = valoresRMSSD.reduce((acc, v) => acc + v, 0);
-    const promedio = total / valoresRMSSD.length;
-
-    if (valoresRMSSD.length < 5) {
-        return {
-            promedioBasal: promedio.toFixed(1),
-            diagnostico: "Faltan datos basales (Mín. 5)",
-            alerta: false,
-            error: true
-        };
+    } else {
+        proyeccionDiasStatus = "Estable 📈";
     }
+
+    return {
+        promedioBasal: promedio.toFixed(1),
+        limiteInferiorSWC: limiteInferiorSWC.toFixed(1),
+        pendienteRegresion: pendiente.toFixed(2),
+        diagnostico: estadoAtleta,
+        alerta: proyeccionAlerta,
+        error: false,
+        proyeccionDiasStatus: proyeccionDiasStatus
+    };
+}
 
     const varianza = valoresRMSSD.reduce((acc, v) => acc + Math.pow(v - promedio, 2), 0) / valoresRMSSD.length;
     const desviacionEstandar = Math.sqrt(varianza);
