@@ -122,7 +122,9 @@ setTimeout(() => {
     loadDataFromSupabase();
 }, 150);
 
-// Eventos para controlar el Modal Emergente
+// ==========================================
+// CONTROL DE CIERRE Y APERTURA DEL MODAL CLINICO
+// ==========================================
 document.getElementById('openAnalysisBtn').addEventListener('click', () => {
     if(!currentSelectedAthlete) return alert("Por favor, selecciona un alumno primero.");
     document.getElementById('modalAthleteName').innerText = `Atleta: ${currentSelectedAthlete} | Estado actual: ${currentAnalysisData.diagnostico}`;
@@ -130,9 +132,30 @@ document.getElementById('openAnalysisBtn').addEventListener('click', () => {
     document.getElementById('analysisModal').classList.remove('hidden');
 });
 
-const cerrarModal = () => document.getElementById('analysisModal').classList.add('hidden');
-document.getElementById('closeAnalysisBtn').addEventListener('click', cerrarModal);
-document.getElementById('closeAnalysisBtn2').addEventListener('click', cerrarModal);
+// Función centralizada para cerrar el modal de forma segura
+function cerrarModalClinico() {
+    console.log("🔒 Cerrando modal clínico...");
+    const modal = document.getElementById('analysisModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Vinculación explícita a cada botón por su ID exacto
+if (document.getElementById('closeAnalysisBtn')) {
+    document.getElementById('closeAnalysisBtn').addEventListener('click', cerrarModalClinico);
+}
+if (document.getElementById('closeAnalysisBtn2')) {
+    document.getElementById('closeAnalysisBtn2').addEventListener('click', cerrarModalClinico);
+}
+
+// CAPA DE SEGURIDAD EXTRA: Si haces clic en el fondo oscuro difuminado, también se cierra
+document.getElementById('analysisModal').addEventListener('click', (e) => {
+    // Si el clic fue exactamente en el fondo negro/transparente y no dentro de la tarjeta
+    if (e.target.id === 'analysisModal') {
+        cerrarModalClinico();
+    }
+});
 
 async function loadDataFromSupabase() {
     console.log("📡 Intentando conectar con Supabase...");
