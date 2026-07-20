@@ -186,16 +186,12 @@ function renderAthletesList() {
     }
 }
 
-// Modifica selectAthlete para rellenar las nuevas tarjetas
 function selectAthlete(name) {
     currentSelectedAthlete = name;
     const records = athletesData[name];
     const latestRecord = records[records.length - 1];
     
-    // Extraemos solo los valores brutos de HRV de TODO el historial para el gráfico
     const hrvValues = records.map(r => r.hrv_rmssd);
-
-    // Ejecutamos el motor fisiológico avanzado
     const analisis = calcularSWCyRegresion(hrvValues);
 
     document.getElementById('selectedAthleteName').innerText = name;
@@ -203,7 +199,6 @@ function selectAthlete(name) {
     document.getElementById('metricAvgHrv').innerText = `${analisis.promedioBasal} ms`;
     document.getElementById('metricPulse').innerText = `${latestRecord.pulso_bpm} BPM`;
     
-    // Rellenamos los dos nuevos cuadros
     document.getElementById('metricSwcRange').innerText = analisis.error ? "-" : `>= ${analisis.limiteInferiorSWC} ms`;
     document.getElementById('metricRiskTrend').innerText = analisis.proyeccionDiasStatus;
 
@@ -223,7 +218,6 @@ function selectAthlete(name) {
     renderChart(records, analisis);
 }
 
-// Rediseño matemático del cálculo: Ventana Móvil de 14 días + Ecuación Predictiva
 function calcularSWCyRegresion(valoresCompletoRMSSD) {
     const totalMediciones = valoresCompletoRMSSD.length;
 
@@ -237,7 +231,7 @@ function calcularSWCyRegresion(valoresCompletoRMSSD) {
         };
     }
 
-    // APLICACIÓN DE VENTANA MÓVIL: Si hay más de 14 datos, recortamos estrictamente los últimos 14 para calcular la línea base
+    // Ventana móvil de los últimos 14 días
     const ventanaDatos = totalMediciones > 14 ? valoresCompletoRMSSD.slice(-14) : valoresCompletoRMSSD;
     const n = ventanaDatos.length;
 
@@ -245,13 +239,11 @@ function calcularSWCyRegresion(valoresCompletoRMSSD) {
     const promedio = totalBasal / n;
 
     const varianza = ventanaDatos.reduce((acc, v) => acc + Math.pow(v - promedio, 2), 0) / n;
-    const desviacionEstandar = Math.sqrt(varianza) || 1; // Control de división por cero
+    const desviacionEstandar = Math.sqrt(varianza) || 1;
 
-    // Coeficiente SWC estándar para atletas (0.5 de la DE)
     const swcThreshold = 0.5 * desviacionEstandar;
     const limiteInferiorSWC = promedio - swcThreshold;
 
-    // Cálculo de la pendiente matemática de la tendencia (Regresión Lineal en la ventana activa)
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < n; i++) {
         sumX += i;
@@ -266,13 +258,11 @@ function calcularSWCyRegresion(valoresCompletoRMSSD) {
     let proyeccionAlerta = false;
     let proyeccionDiasStatus = "Estable";
 
-    // Evaluar estado fisiológico
     if (ultimoHRV < limiteInferiorSWC) {
         estadoAtleta = "FATIGA AGUDA (Fuera de SWC)";
         proyeccionAlerta = true;
         proyeccionDiasStatus = "Zona de Riesgo 🚨";
     } else if (pendiente < 0) {
-        // Si la tendencia va a la baja, estimamos matemáticamente cuántos días le quedan antes de perforar el SWC
         const distanciaAlRiesgo = ultimoHRV - limiteInferiorSWC;
         const diasEstimados = Math.abs(distanciaAlRiesgo / pendiente);
         
@@ -298,46 +288,149 @@ function calcularSWCyRegresion(valoresCompletoRMSSD) {
     };
 }
 
-    const varianza = valoresRMSSD.reduce((acc, v) => acc + Math.pow(v - promedio, 2), 0) / valoresRMSSD.length;
-    const desviacionEstandar = Math.sqrt(varianza);
+function renderChart(records, analisis) {
+    const ctx = document.getElementById('hrvChart').getContext('2d');
+    
+    const labels = records.map(r => formatearFechaCronologica(r.fecha));
+    const hrvValues = records.map(r => r.hrv_rmssd);
+    const pulseValues = records.map(r => r.pulso_bpm);
 
-    const swcThreshold = 0.5 * desviacionEstandar;
-    const limiteInferiorSWC = promedio - swcThreshold;
-
-    const n = valoresRMSSD.length;
+    // Reconstrucción de la línea de tendencia basada en los datos históricos totales para coherencia visual
+    const trendValues = [];
+    const n = hrvValues.length;
+    const totalHrv = hrvValues.reduce((acc, v) => acc + v, 0);
+    const avgHrv = totalHrv / n;
+    
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < n; i++) {
         sumX += i;
-        sumY += valoresRMSSD[i];
-        sumXY += i * valoresRMSSD[i];
+        sumY += hrvValues[i];
+        sumXY += i * hrvValues[i];
         sumXX += i * i;
     }
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX) || 0;
+    const intercepto = avgHrv - pendiente * ((n - 1) / 2);
 
-    const ultimoHRV = valoresRMSSD[valoresRMSSD.length - 1];
-    let estadoAtleta = "RECUPERADO / ADAPTACIÓN ÓPTIMA";
-    let proyeccionAlerta = false;
-
-    if (ultimoHRV < limiteInferiorSWC) {
-        estadoAtleta = "FATIGA AGUDA (Fuera de SWC)";
-        proyeccionAlerta = true;
-    } else if (pendiente < -1.2) {
-        estadoAtleta = "PRECAUCIÓN (Fatiga Acumulada)";
-        proyeccionAlerta = true;
+    for (let i = 0; i < n; i++) {
+        trendValues.push(Number((pendiente * i + intercepto).toFixed(1)));
     }
 
-    return {
-        promedioBasal: promedio.toFixed(1),
-        limiteInferiorSWC: limiteInferiorSWC.toFixed(1),
-        pendienteRegresion: pendiente.toFixed(2),
-        diagnostico: estadoAtleta,
-        alerta: proyeccionAlerta
-    };
+    if (hrvChartInstance) {
+        hrvChartInstance.destroy();
+    }
+
+    const mostrarSWC = !analisis.error;
+    const valPromedio = mostrarSWC ? Number(analisis.promedioBasal) : null;
+    const valInferior = mostrarSWC ? Number(analisis.limiteInferiorSWC) : null;
+
+    hrvChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Variabilidad (HRV RMSSD) [Eje Izquierdo]',
+                    data: hrvValues,
+                    borderColor: '#00adb5',
+                    backgroundColor: 'rgba(0, 173, 181, 0.1)',
+                    pointBackgroundColor: '#00adb5',
+                    pointRadius: 5,
+                    tension: 0.2,
+                    fill: false,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Tendencia Lineal HRV',
+                    data: trendValues,
+                    borderColor: 'rgba(255, 255, 255, 0.35)',
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    tension: 0,
+                    fill: false,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Frecuencia Cardíaca (BPM) [Eje Derecho]',
+                    data: pulseValues,
+                    borderColor: '#f87171',
+                    pointBackgroundColor: '#f87171',
+                    borderDash: [2, 2],
+                    pointRadius: 4,
+                    tension: 0.2,
+                    fill: false,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onClick: async (e, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const registroSeleccionado = records[index];
+                    
+                    const confirmar = confirm(`¿Deseas eliminar la medición del día ${labels[index]} por considerarla un error de toma?`);
+                    if (confirmar) {
+                        await eliminarMedicion(registroSeleccionado.id);
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#00adb5' },
+                    title: { display: true, text: 'HRV (ms)', color: '#00adb5', font: { weight: 'bold' } }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false }, 
+                    ticks: { color: '#f87171' },
+                    title: { display: true, text: 'Pulso (BPM)', color: '#f87171', font: { weight: 'bold' } }
+                },
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#ccc', maxRotation: 45, minRotation: 45 }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: '#fff', fontSize: 11 } },
+                annotation: mostrarSWC ? {
+                    annotations: {
+                        boxSWC: {
+                            type: 'box',
+                            yMin: valInferior,
+                            yMax: valPromedio + (valPromedio - valInferior), 
+                            backgroundColor: 'rgba(16, 185, 129, 0.04)',
+                            borderColor: 'rgba(16, 185, 129, 0.2)',
+                            borderWidth: 1,
+                            label: {
+                                display: true,
+                                content: 'Zona Óptima SWC',
+                                position: 'start',
+                                color: 'rgba(16, 185, 129, 0.6)',
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                } : {},
+                tooltip: {
+                    callbacks: {
+                        footer: () => "💡 Clic en el punto para borrar esta medición"
+                    }
+                }
+            }
+        }
+    });
 }
 
 function formatearFechaCronologica(fechaStr) {
     try {
-        // Corrección estricta de huso horario para que no mueva las fechas registradas
         const d = new Date(fechaStr);
         if (isNaN(d.getTime())) return fechaStr;
         
