@@ -34,10 +34,16 @@
             <!-- Panel Derecho: Gráfica y Métricas del Alumno Seleccionado -->
             <div class="lg:col-span-2 bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800 flex flex-col justify-between">
                 <div>
-                    <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-                        <h2 id="selectedAthleteName" class="text-xl font-bold text-white">Selecciona un Alumno</h2>
-                        <span id="selectedAthleteStatus" class="px-3 py-1 rounded-full text-xs font-bold"></span>
-                    </div>
+                   <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+    <div class="flex items-center gap-3">
+        <h2 id="selectedAthleteName" class="text-xl font-bold text-white">Selecciona un Alumno</h2>
+        <span id="selectedAthleteStatus" class="px-3 py-1 rounded-full text-xs font-bold"></span>
+    </div>
+    <!-- NUEVO: Botón para abrir el análisis de variables -->
+    <button id="openAnalysisBtn" class="bg-zinc-800 hover:bg-zinc-700 text-[#00adb5] border border-[#00adb5]/30 text-xs font-bold py-1.5 px-3 rounded-lg transition flex items-center gap-1.5">
+        🔍 Ver Análisis Fisiológico
+    </button>
+</div>
 
 <!-- Grid Superior de Métricas Fisiológicas -->
 <!-- Grid Nivel 1: Indicadores Críticos y Readiness -->
@@ -109,14 +115,24 @@ let rawData = [];
 let athletesData = {};
 let hrvChartInstance = null;
 let currentSelectedAthlete = ""; 
-
+let currentAnalysisData = null; // Almacenará el análisis del atleta seleccionado para el modal
 // Arranque protegido esperando la inyección de librerías en ventana global
 setTimeout(() => {
     console.log("🚀 [CONSOLA BIOMÉTRICA] Iniciando Dashboard...");
     loadDataFromSupabase();
 }, 150);
 
-document.getElementById('refreshBtn').addEventListener('click', loadDataFromSupabase);
+// Eventos para controlar el Modal Emergente
+document.getElementById('openAnalysisBtn').addEventListener('click', () => {
+    if(!currentSelectedAthlete) return alert("Por favor, selecciona un alumno primero.");
+    document.getElementById('modalAthleteName').innerText = `Atleta: ${currentSelectedAthlete} | Estado actual: ${currentAnalysisData.diagnostico}`;
+    construirContenidoModal(currentAnalysisData);
+    document.getElementById('analysisModal').classList.remove('hidden');
+});
+
+const cerrarModal = () => document.getElementById('analysisModal').classList.add('hidden');
+document.getElementById('closeAnalysisBtn').addEventListener('click', cerrarModal);
+document.getElementById('closeAnalysisBtn2').addEventListener('click', cerrarModal);
 
 async function loadDataFromSupabase() {
     console.log("📡 Intentando conectar con Supabase...");
@@ -215,6 +231,7 @@ function selectAthlete(name) {
     const pulseValues = records.map(r => r.pulso_bpm);
 
     const analisis = calcularSWCyRegresion(hrvValues, pulseValues);
+    currentAnalysisData = analisis; // Guardamos el objeto completo para el modal
 
     document.getElementById('selectedAthleteName').innerText = name;
     document.getElementById('metricLatestHrv').innerText = `${latestRecord.hrv_rmssd} ms`;
@@ -546,6 +563,125 @@ async function eliminarMedicion(idMedicion) {
         alert("No se pudo eliminar de la base de datos.");
     }
 }
+function construirContenidoModal(analisis) {
+    const body = document.getElementById('modalVariablesBody');
+    
+    // Evaluamos rangos del IBA
+    let ibaColor = "text-violet-400", ibaStatus = "", ibaDesc = "";
+    const ibaNum = parseFloat(analisis.iba);
+    if (ibaNum > 1.2) {
+        ibaColor = "text-emerald-400"; ibaStatus = "Dominancia Parasimpática Ideal";
+        ibaDesc = "El corazón late despacio y con alta variabilidad. Excelente asimilación de cargas, ideal para sesiones de alta demanda técnica o fuerza máxima.";
+    } else if (ibaNum >= 0.8) {
+        ibaColor = "text-cyan-400"; ibaStatus = "Balance Autonómico Estable";
+        ibaDesc = "Acoplamiento neuro-cardiovascular óptimo. El atleta se encuentra en un estado equilibrado listo para la estimulación planificada.";
+    } else {
+        ibaColor = "text-rose-400"; ibaStatus = "Dominancia Simpática (Estrés)";
+        ibaDesc = "El corazón late rápido y con baja variabilidad. El sistema nervioso central está bajo estrés. Se recomienda priorizar trabajos regenerativos o movilidad.";
+    }
+
+    // Evaluamos rangos del CV-RMSSD
+    let cvColor = "text-cyan-400", cvStatus = "", cvDesc = "";
+    const cvNum = parseFloat(analisis.cv);
+    if (cvNum < 3.0) {
+        cvColor = "text-rose-600"; cvStatus = "Saturación Parasimpática (Alerta Máxima)";
+        cvDesc = "Estabilidad artificial extrema. El sistema autónomo se ha congelado bloqueando su adaptabilidad. Riesgo severo de sobreentrenamiento cronificado.";
+    } else if (cvNum <= 10.0) {
+        cvColor = "text-emerald-400"; cvStatus = "Estabilidad Autonómica Óptima";
+        cvDesc = "El cuerpo del atleta está bajo control total, absorbiendo las sesiones de forma lineal, predecible y saludable.";
+    } else if (cvNum <= 12.0) {
+        cvColor = "text-amber-400"; cvStatus = "Fluctuación Normal";
+        cvDesc = "Oscilación adaptativa estándar. El cuerpo está respondiendo a estímulos recientes variados.";
+    } else {
+        cvColor = "text-rose-400"; cvStatus = "Inestabilidad Autonómica Alta";
+        cvDesc = "Perturbación severa en las respuestas de recuperación diarias. Influenciado por cargas excesivas, falta de sueño o estrés psicológico.";
+    }
+
+    // Evaluamos posición respecto al Umbral SWC
+    let hrvStatus = "", hrvColor = "text-[#00adb5]", hrvDesc = "";
+    if (analisis.diagnostico.includes("AGUDA")) {
+        hrvColor = "text-rose-500"; hrvStatus = "Perforación Crítica del Umbral";
+        hrvDesc = "La variabilidad diaria cayó por debajo de su límite estadístico normal de tolerancia. El freno vagal está deprimido; requiere descarga inmediata.";
+    } else {
+        hrvColor = "text-emerald-400"; hrvStatus = "Dentro de Zona Óptima";
+        hrvDesc = "La variabilidad actual se mantiene por encima del umbral mínimo de seguridad. El tejido y sistema autónomo mantienen capacidad de respuesta.";
+    }
+
+    body.innerHTML = `
+        <!-- Variable 1: HRV Diario vs SWC -->
+        <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h4 class="text-sm font-black text-[#00adb5] uppercase">1. Estado de Variabilidad (RMSSD)</h4>
+                    <p class="text-xs font-bold ${hrvColor} mt-0.5">${hrvStatus}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xl font-black text-white">${analisis.promedioBasal} ms</span>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase">Línea Base Basal</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed mt-2">${hrvDesc}</p>
+        </div>
+
+        <!-- Variable 2: IBA -->
+        <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h4 class="text-sm font-black text-violet-400 uppercase">2. Índice de Balance Autonómico (IBA)</h4>
+                    <p class="text-xs font-bold ${ibaColor} mt-0.5">${ibaStatus}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xl font-black text-white">${analisis.iba}</span>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase">Relación HRV/FC</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed mt-2">${ibaDesc}</p>
+        </div>
+
+        <!-- Variable 3: CV-RMSSD -->
+        <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h4 class="text-sm font-black text-cyan-400 uppercase">3. Coeficiente de Variación (CV-RMSSD)</h4>
+                    <p class="text-xs font-bold ${cvColor} mt-0.5">${cvStatus}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xl font-black text-white">${analisis.cv}%</span>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase">Variabilidad 7 Días</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed mt-2">${cvDesc}</p>
+        </div>
+    `;
+}
 </script>
+   <!-- MODAL EMERGENTE: ANÁLISIS CLÍNICO POR VARIABLE -->
+<div id="analysisModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-[#1e1e1e] border border-zinc-800 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        
+        <!-- Cabecera del Modal -->
+        <div class="p-5 border-b border-zinc-800 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    📊 Diagnóstico Fisiológico Personalizado
+                </h3>
+                <p id="modalAthleteName" class="text-xs text-gray-400 mt-0.5">Atleta: -</p>
+            </div>
+            <button id="closeAnalysisBtn" class="text-gray-400 hover:text-white text-xl p-1 font-bold">&times;</button>
+        </div>
+
+        <!-- Cuerpo del Modal (Scrollable si es necesario) -->
+        <div class="p-6 space-y-4 overflow-y-auto" id="modalVariablesBody">
+            <!-- Las tarjetas se inyectarán dinámicamente con JavaScript -->
+        </div>
+
+        <!-- Pie del Modal -->
+        <div class="p-4 border-t border-zinc-800 bg-zinc-900/50 rounded-b-2xl text-right">
+            <button id="closeAnalysisBtn2" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
+                Cerrar Análisis
+            </button>
+        </div>
+    </div>
+</div> 
 </body>
 </html>
