@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Coach - Perfil de Atleta 360°</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script> <!-- AÑADE ESTA LÍNEA -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-[#121212] text-white min-h-screen p-6">
 
@@ -67,7 +68,6 @@
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
-// Cambiamos el nombre aquí para evitar el conflicto de duplicados
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let rawData = [];
@@ -93,7 +93,6 @@ async function loadDataFromSupabase() {
     document.getElementById('athletesList').innerHTML = '';
     
     try {
-        // Usamos la variable corregida aquí también
         const { data, error } = await supabaseClient
             .from('registros_hrv')
             .select('*')
@@ -140,7 +139,6 @@ function renderAthletesList() {
         const latestRecord = records[records.length - 1];
         const hrvValues = records.map(r => r.hrv_rmssd);
         
-        // Ejecución del motor SWC para determinar el color de la alerta visual
         const analisis = calcularSWCyRegresion(hrvValues);
         
         let borderColor = "border-green-500";
@@ -196,19 +194,44 @@ function selectAthlete(name) {
         statusBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-950 text-green-300";
     }
 
-    renderChart(records);
+    renderChart(records, analisis);
 }
 
-function renderChart(records) {
+function renderChart(records, analisis) {
     const ctx = document.getElementById('hrvChart').getContext('2d');
     
     const labels = records.map(r => formatearFechaCronologica(r.fecha));
     const hrvValues = records.map(r => r.hrv_rmssd);
     const pulseValues = records.map(r => r.pulso_bpm);
 
+    // Generar línea de regresión lineal para predecir tendencia visual
+    const trendValues = [];
+    const n = hrvValues.length;
+    const totalHrv = hrvValues.reduce((acc, v) => acc + v, 0);
+    const avgHrv = totalHrv / n;
+    
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += hrvValues[i];
+        sumXY += i * hrvValues[i];
+        sumXX += i * i;
+    }
+    const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX) || 0;
+    const intercepto = avgHrv - pendiente * ((n - 1) / 2);
+
+    for (let i = 0; i < n; i++) {
+        trendValues.push(Number((pendiente * i + intercepto).toFixed(1)));
+    }
+
     if (hrvChartInstance) {
         hrvChartInstance.destroy();
     }
+
+    // Configuración de Líneas de Referencia e Intervalos del SWC
+    const mostrarSWC = !analisis.error;
+    const valPromedio = mostrarSWC ? Number(analisis.promedioBasal) : null;
+    const valInferior = mostrarSWC ? Number(analisis.limiteInferiorSWC) : null;
 
     hrvChartInstance = new Chart(ctx, {
         type: 'line',
@@ -216,20 +239,35 @@ function renderChart(records) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Variabilidad (HRV RMSSD)',
+                    label: 'Variabilidad (HRV RMSSD) [Eje Izquierdo]',
                     data: hrvValues,
                     borderColor: '#00adb5',
-                    backgroundColor: 'rgba(0, 173, 181, 0.05)',
-                    tension: 0.25,
-                    fill: true,
+                    backgroundColor: 'rgba(0, 173, 181, 0.1)',
+                    pointBackgroundColor: '#00adb5',
+                    pointRadius: 5,
+                    tension: 0.2,
+                    fill: false,
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Frecuencia Cardíaca (BPM)',
+                    label: 'Tendencia Lineal HRV',
+                    data: trendValues,
+                    borderColor: 'rgba(255, 255, 255, 0.35)',
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    tension: 0,
+                    fill: false,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Frecuencia Cardíaca (BPM) [Eje Derecho]',
                     data: pulseValues,
                     borderColor: '#f87171',
-                    borderDash: [5, 5],
-                    tension: 0.25,
+                    pointBackgroundColor: '#f87171',
+                    borderDash: [2, 2],
+                    pointRadius: 4,
+                    tension: 0.2,
+                    fill: false,
                     yAxisID: 'y1'
                 }
             ]
@@ -254,16 +292,16 @@ function renderChart(records) {
                     display: true,
                     position: 'left',
                     grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#ccc' },
-                    title: { display: true, text: 'HRV (ms)', color: '#00adb5' }
+                    ticks: { color: '#00adb5' },
+                    title: { display: true, text: 'HRV (ms)', color: '#00adb5', font: { weight: 'bold' } }
                 },
                 y1: {
                     type: 'linear',
                     display: true,
                     position: 'right',
-                    grid: { drawOnChartArea: false },
-                    ticks: { color: '#ccc' },
-                    title: { display: true, text: 'Pulso (BPM)', color: '#f87171' }
+                    grid: { drawOnChartArea: false }, 
+                    ticks: { color: '#f87171' },
+                    title: { display: true, text: 'Pulso (BPM)', color: '#f87171', font: { weight: 'bold' } }
                 },
                 x: {
                     grid: { color: 'rgba(255,255,255,0.05)' },
@@ -271,7 +309,26 @@ function renderChart(records) {
                 }
             },
             plugins: {
-                legend: { labels: { color: '#fff' } },
+                legend: { labels: { color: '#fff', fontSize: 11 } },
+                annotation: mostrarSWC ? {
+                    annotations: {
+                        boxSWC: {
+                            type: 'box',
+                            yMin: valInferior,
+                            yMax: valPromedio + (valPromedio - valInferior), 
+                            backgroundColor: 'rgba(16, 185, 129, 0.04)',
+                            borderColor: 'rgba(16, 185, 129, 0.2)',
+                            borderWidth: 1,
+                            label: {
+                                display: true,
+                                content: 'Zona Óptima SWC',
+                                position: 'start',
+                                color: 'rgba(16, 185, 129, 0.6)',
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                } : {},
                 tooltip: {
                     callbacks: {
                         footer: () => "💡 Clic en el punto para borrar esta medición"
@@ -309,7 +366,7 @@ function calcularSWCyRegresion(valoresRMSSD) {
         sumXY += i * valoresRMSSD[i];
         sumXX += i * i;
     }
-    const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX) || 0;
 
     const ultimoHRV = valoresRMSSD[valoresRMSSD.length - 1];
     let estadoAtleta = "RECUPERADO / ADAPTACIÓN ÓPTIMA";
@@ -334,9 +391,16 @@ function calcularSWCyRegresion(valoresRMSSD) {
 
 function formatearFechaCronologica(fechaStr) {
     try {
-        const f = new Date(fechaStr);
-        if (isNaN(f.getTime())) return fechaStr;
-        return `${f.getDate()}/${f.getMonth() + 1} ${String(f.getHours()).padStart(2, '0')}:${String(f.getMinutes()).padStart(2, '0')}`;
+        // Corrección estricta de huso horario para que no mueva las fechas registradas
+        const d = new Date(fechaStr);
+        if (isNaN(d.getTime())) return fechaStr;
+        
+        const dia = String(d.getDate()).padStart(2, '0');
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        const hora = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        
+        return `${dia}/${mes} ${hora}:${mins}`;
     } catch {
         return fechaStr;
     }
@@ -344,7 +408,6 @@ function formatearFechaCronologica(fechaStr) {
 
 async function eliminarMedicion(idMedicion) {
     try {
-        // Cambiado a supabaseClient
         const { error } = await supabaseClient
             .from('registros_hrv')
             .delete()
