@@ -122,40 +122,64 @@ setTimeout(() => {
     loadDataFromSupabase();
 }, 150);
 
-// ==========================================
-// CONTROL DE CIERRE Y APERTURA DEL MODAL CLINICO
-// ==========================================
-document.getElementById('openAnalysisBtn').addEventListener('click', () => {
-    if(!currentSelectedAthlete) return alert("Por favor, selecciona un alumno primero.");
-    document.getElementById('modalAthleteName').innerText = `Atleta: ${currentSelectedAthlete} | Estado actual: ${currentAnalysisData.diagnostico}`;
-    construirContenidoModal(currentAnalysisData);
-    document.getElementById('analysisModal').classList.remove('hidden');
-});
+// ========================================================
+// CONTROL DE CIERRE Y APERTURA DE POP-UP (BLINDADO)
+// ========================================================
 
-// Función centralizada para cerrar el modal de forma segura
+// 1. Control del Botón de Apertura
+const btnAbrir = document.getElementById('openAnalysisBtn');
+if (btnAbrir) {
+    btnAbrir.addEventListener('click', () => {
+        if (!currentSelectedAthlete) {
+            alert("Por favor, selecciona un alumno primero.");
+            return;
+        }
+        
+        const modalName = document.getElementById('modalAthleteName');
+        if (modalName && currentAnalysisData) {
+            modalName.innerText = `Atleta: ${currentSelectedAthlete} | Estado actual: ${currentAnalysisData.diagnostico}`;
+        }
+        
+        if (currentAnalysisData) {
+            construirContenidoModal(currentAnalysisData);
+        }
+        
+        const modal = document.getElementById('analysisModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    });
+}
+
+// 2. Función Centralizada para Cerrar el Modal
 function cerrarModalClinico() {
-    console.log("🔒 Cerrando modal clínico...");
     const modal = document.getElementById('analysisModal');
     if (modal) {
         modal.classList.add('hidden');
     }
 }
 
-// Vinculación explícita a cada botón por su ID exacto
-if (document.getElementById('closeAnalysisBtn')) {
-    document.getElementById('closeAnalysisBtn').addEventListener('click', cerrarModalClinico);
-}
-if (document.getElementById('closeAnalysisBtn2')) {
-    document.getElementById('closeAnalysisBtn2').addEventListener('click', cerrarModalClinico);
+// 3. Control del Botón "X" Superior
+const btnCerrarX = document.getElementById('closeAnalysisBtn');
+if (btnCerrarX) {
+    btnCerrarX.addEventListener('click', cerrarModalClinico);
 }
 
-// CAPA DE SEGURIDAD EXTRA: Si haces clic en el fondo oscuro difuminado, también se cierra
-document.getElementById('analysisModal').addEventListener('click', (e) => {
-    // Si el clic fue exactamente en el fondo negro/transparente y no dentro de la tarjeta
-    if (e.target.id === 'analysisModal') {
-        cerrarModalClinico();
-    }
-});
+// 4. Control del Botón "Cerrar Análisis" Inferior
+const btnCerrarTexto = document.getElementById('closeAnalysisBtn2');
+if (btnCerrarTexto) {
+    btnCerrarTexto.addEventListener('click', cerrarModalClinico);
+}
+
+// 5. Control de Cierre haciendo clic fuera de la Tarjeta (En el fondo oscuro)
+const modalContenedor = document.getElementById('analysisModal');
+if (modalContenedor) {
+    modalContenedor.addEventListener('click', (e) => {
+        if (e.target.id === 'analysisModal') {
+            cerrarModalClinico();
+        }
+    });
+}
 
 async function loadDataFromSupabase() {
     console.log("📡 Intentando conectar con Supabase...");
