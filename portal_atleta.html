@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Portal de Rendimiento & Salud - Perfil 360°</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-[#121212] text-white min-h-screen p-4 md:p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- CABECERA Y SELECTOR DE ATLETA -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#1e1e1e] p-5 rounded-2xl border border-gray-800 shadow-xl gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-[#00adb5]">Mi Estado Biométrico</h1>
+                <p class="text-xs text-gray-400 mt-1">Monitoreo de Salud, Recuperación y Adaptación Fisiológica</p>
+            </div>
+            
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <select id="athleteSelect" onchange="onAthleteChange()" class="bg-[#252525] border border-gray-700 text-white text-sm rounded-xl p-2.5 focus:ring-[#00adb5] focus:border-[#00adb5] w-full sm:w-48">
+                    <option value="">Cargando atletas...</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- PANTALLA PRINCIPAL DE SCORE DEL DÍA -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- TARJETA DEL SCORE READINESS -->
+            <div id="readinessCard" class="md:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300">
+                <span class="text-xs font-black uppercase tracking-widest text-gray-400">Readiness de Hoy</span>
+                
+                <div class="my-4 relative flex items-center justify-center">
+                    <!-- Circulo de fondo decorativo -->
+                    <div id="scoreRing" class="w-36 h-36 rounded-full border-8 border-gray-800 flex flex-col items-center justify-center transition-all duration-500">
+                        <span id="scoreValue" class="text-5xl font-black text-white">-</span>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">/ 100 PTS</span>
+                    </div>
+                </div>
+
+                <div class="w-full">
+                    <div id="statusBadge" class="py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-400 mb-2">
+                        Selecciona tu nombre
+                    </div>
+                    <p id="statusSubtext" class="text-xs text-gray-400 font-medium">-</p>
+                </div>
+            </div>
+
+            <!-- EXPLICACIÓN FISIOLÓGICA TÉCNICA Y ACCESIBLE -->
+            <div class="md:col-span-2 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-[#00adb5] mb-3 flex items-center gap-2">
+                        🧠 ¿Cómo está respondiendo tu cuerpo hoy?
+                    </h2>
+                    
+                    <div id="physioExplanation" class="space-y-3 text-sm text-gray-300 leading-relaxed">
+                        <p class="text-gray-500 italic">Selecciona tu usuario para generar el diagnóstico fisiológico de hoy.</p>
+                    </div>
+                </div>
+
+                <div id="recommendationBox" class="mt-4 p-3.5 rounded-xl bg-[#252525] border border-gray-800 flex items-start gap-3">
+                    <span class="text-xl">💡</span>
+                    <div>
+                        <h4 class="text-xs font-bold text-white uppercase">Sugerencia del día</h4>
+                        <p id="recommendationText" class="text-xs text-gray-400 mt-0.5">El sistema sugerirá pautas de carga o descanso según tus métricas.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- GRÁFICO HISTÓRICO CON ZONA DE CONFORT -->
+        <div class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Tu Historial de Recuperación (HRV)</h3>
+                    <p class="text-xs text-gray-400">La franja verde representa tu **Zona de Confort Fisiológico (SWC)**.</p>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-semibold">
+                    <span class="flex items-center gap-1.5 text-cyan-400"><span class="w-3 h-3 rounded-full bg-[#00adb5] inline-block"></span> Tu HRV</span>
+                    <span class="flex items-center gap-1.5 text-emerald-400"><span class="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500 inline-block"></span> Zona Óptima</span>
+                </div>
+            </div>
+
+            <div class="bg-[#252525] p-4 rounded-xl min-h-[320px] flex items-center justify-center">
+                <canvas id="athleteChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+    const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
+        
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let rawData = [];
+    let athletesData = {};
+    let athleteChartInstance = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadDataFromSupabase();
+    });
+
+    async function loadDataFromSupabase() {
+        try {
+            const { data, error } = await supabaseClient
+                .from('registros_hrv')
+                .select('*')
+                .order('fecha', { ascending: true });
+                
+            if (error) throw error;
+            
+            rawData = data;
+            processAthletesData();
+            populateAthleteDropdown();
+        } catch (err) {
+            console.error("Error al cargar datos:", err);
+        }
+    }
+
+    function processAthletesData() {
+        athletesData = {};
+        rawData.forEach(row => {
+            const name = row.alumno_nombre;
+            if (!athletesData[name]) {
+                athletesData[name] = [];
+            }
+            athletesData[name].push(row);
+        });
+    }
+
+    function populateAthleteDropdown() {
+        const select = document.getElementById('athleteSelect');
+        select.innerHTML = '<option value="">-- Selecciona tu Nombre --</option>';
+        
+        const names = Object.keys(athletesData);
+        names.forEach(name => {
+            select.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+
+        // Si hay al menos un atleta, seleccionar el primero por defecto
+        if (names.length > 0) {
+            select.value = names[0];
+            onAthleteChange();
+        }
+    }
+
+    function onAthleteChange() {
+        const selectedName = document.getElementById('athleteSelect').value;
+        if (!selectedName || !athletesData[selectedName]) return;
+
+        const records = athletesData[selectedName];
+        const latestRecord = records[records.length - 1];
+        
+        const hrvValues = records.map(r => r.hrv_rmssd);
+        const pulseValues = records.map(r => r.pulso_bpm);
+
+        const analisis = calcularBiometria(hrvValues, pulseValues);
+        
+        actualizarScoreUI(analisis, latestRecord);
+        actualizarExplicacionFisiologica(analisis, latestRecord);
+        renderAthleteChart(records, analisis);
+    }
+
+    function calcularBiometria(hrvArr, pulseArr) {
+        const total = hrvArr.length;
+        if (total < 5) {
+            return { error: true, msg: "Necesitamos al menos 5 días de mediciones para calcular tu línea base." };
+        }
+
+        const ventana = total > 14 ? hrvArr.slice(-14) : hrvArr;
+        const n = ventana.length;
+        const prom = ventana.reduce((a, b) => a + b, 0) / n;
+        const variancia = ventana.reduce((acc, v) => acc + Math.pow(v - prom, 2), 0) / n;
+        const desvEst = Math.sqrt(variancia) || 1;
+        const swcMin = prom - (0.5 * desvEst);
+        const swcMax = prom + (0.5 * desvEst);
+
+        const ultHRV = hrvArr[total - 1];
+        const ultPulso = pulseArr[total - 1];
+
+        // Readiness Score
+        const promPulso = pulseArr.reduce((a, b) => a + b, 0) / pulseArr.length;
+        let penHRV = ultHRV < prom ? ((prom - ultHRV) / prom) * 100 * 0.60 : 0;
+        let penPulso = ultPulso > promPulso ? ((ultPulso - promPulso) / promPulso) * 100 * 0.40 : 0;
+        
+        let score = Math.round(100 - (penHRV + penPulso));
+        score = Math.max(10, Math.min(100, score));
+
+        let zonaRiesgo = false;
+        let estado = "Óptimo";
+
+        if (ultHRV < swcMin) {
+            zonaRiesgo = true;
+            estado = "Fatiga Aguda";
+            score = Math.min(score, 45);
+        } else if (ultHRV > swcMax) {
+            estado = "Parasimpático Elevado";
+        }
+
+        return {
+            error: false,
+            score: score,
+            promedioHRV: prom.toFixed(1),
+            swcMin: swcMin.toFixed(1),
+            swcMax: swcMax.toFixed(1),
+            ultHRV: ultHRV,
+            ultPulso: ultPulso,
+            zonaRiesgo: zonaRiesgo,
+            estado: estado
+        };
+    }
+
+    function actualizarScoreUI(analisis, latestRecord) {
+        const scoreEl = document.getElementById('scoreValue');
+        const ringEl = document.getElementById('scoreRing');
+        const badgeEl = document.getElementById('statusBadge');
+        const subtextEl = document.getElementById('statusSubtext');
+
+        if (analisis.error) {
+            scoreEl.innerText = "-";
+            badgeEl.innerText = "Datos Insuficientes";
+            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-400 mb-2";
+            subtextEl.innerText = analisis.msg;
+            return;
+        }
+
+        scoreEl.innerText = analisis.score;
+
+        if (analisis.score >= 85) {
+            ringEl.className = "w-36 h-36 rounded-full border-8 border-emerald-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]";
+            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-800 mb-2";
+            badgeEl.innerText = "⚡ Estado de Gracia / Recuperación Alta";
+            subtextEl.innerText = "Tu sistema nervioso está balanceado y listo para responder.";
+        } else if (analisis.score >= 65) {
+            ringEl.className = "w-36 h-36 rounded-full border-8 border-cyan-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(6,182,212,0.3)]";
+            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-cyan-950 text-cyan-300 border border-cyan-800 mb-2";
+            badgeEl.innerText = "👍 Estado Normal / Buena Adaptación";
+            subtextEl.innerText = "Puedes asimilar el entrenamiento planificado sin problemas.";
+        } else if (analisis.score >= 45) {
+            ringEl.className = "w-36 h-36 rounded-full border-8 border-amber-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]";
+            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-950 text-amber-300 border border-amber-800 mb-2";
+            badgeEl.innerText = "⚠️ Fatiga Moderada / Precaución";
+            subtextEl.innerText = "Tu cuerpo muestra signos leves de sobrecarga. Modera la intensidad.";
+        } else {
+            ringEl.className = "w-36 h-36 rounded-full border-8 border-rose-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]";
+            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-rose-950 text-rose-300 border border-rose-800 mb-2";
+            badgeEl.innerText = "🚨 Zona de Riesgo / Descarga";
+            subtextEl.innerText = "Tu freno vagal cayó significativamente. Se aconseja descanso activo.";
+        }
+    }
+
+    function actualizarExplicacionFisiologica(analisis, latestRecord) {
+        const box = document.getElementById('physioExplanation');
+        const recText = document.getElementById('recommendationText');
+
+        if (analisis.error) {
+            box.innerHTML = `<p class="text-gray-400">${analisis.msg}</p>`;
+            recText.innerText = "Continúa registrando tus datos por las mañanas.";
+            return;
+        }
+
+        let textoHrv = "";
+        let textoPulso = "";
+
+        if (analisis.ultHRV < analisis.swcMin) {
+            textoHrv = `<strong class="text-rose-400">Tu Variabilidad (HRV) de ${analisis.ultHRV} ms cayó por debajo de tu rango de confort (${analisis.swcMin} ms).</strong> Esto indica que tu <em>Sistema Nervioso Parasimpático</em> (tu freno regenerativo) está fatigado, probablemente debido a una carga acumulada de entrenamiento, estrés o falta de descanso.`;
+        } else {
+            textoHrv = `<strong class="text-emerald-400">Tu Variabilidad (HRV) se mantiene en ${analisis.ultHRV} ms (dentro de tu zona óptima).</strong> Tu sistema nervioso autónomo mantiene una excelente flexibilidad para adaptarse al esfuerzo físico.`;
+        }
+
+        textoPulso = `Tu frecuencia cardíaca basal amaneció en <strong>${analisis.ultPulso} BPM</strong>. `;
+
+        box.innerHTML = `
+            <div class="bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
+                <p class="text-xs text-gray-300 leading-relaxed">${textoHrv}</p>
+            </div>
+            <div class="bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
+                <p class="text-xs text-gray-300 leading-relaxed">${textoPulso} Mantener un pulso en reposo bajo e interactivo con un HRV alto es el marcador de salud cardiovascular y longevidad deportiva más confiable.</p>
+            </div>
+        `;
+
+        // Sugerencia Práctica
+        if (analisis.score >= 85) {
+            recText.innerText = "Día ideal para buscar registros máximos, entrenamiento de alta intensidad o sesiones técnicamente complejas.";
+        } else if (analisis.score >= 65) {
+            recText.innerText = "Sigue con tu plan de entrenamiento habitual. Asimilas la carga adecuadamente.";
+        } else if (analisis.score >= 45) {
+            recText.innerText = "Reduce el volumen total un 20-30%. Enfócate en técnica limpia y evita llegar al fallo muscular.";
+        } else {
+            recText.innerText = "Prioriza regeneración: movilidad articular suave, caminata liviana, hidratación y 8+ horas de sueño.";
+        }
+    }
+
+    function renderAthleteChart(records, analisis) {
+        const ctx = document.getElementById('athleteChart').getContext('2d');
+        const labels = records.map(r => {
+            const d = new Date(r.fecha);
+            return isNaN(d.getTime()) ? r.fecha : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+        });
+
+        const hrvValues = records.map(r => r.hrv_rmssd);
+
+        if (athleteChartInstance) {
+            athleteChartInstance.destroy();
+        }
+
+        const mostrarSWC = !analisis.error;
+        const valMin = mostrarSWC ? Number(analisis.swcMin) : null;
+        const valMax = mostrarSWC ? Number(analisis.swcMax) : null;
+
+        athleteChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Tu HRV (ms)',
+                        data: hrvValues,
+                        borderColor: '#00adb5',
+                        backgroundColor: 'rgba(0, 173, 181, 0.15)',
+                        pointBackgroundColor: '#00adb5',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#00adb5', font: { weight: 'bold' } },
+                        title: { display: true, text: 'HRV (ms)', color: '#00adb5' }
+                    },
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#888' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    annotation: mostrarSWC ? {
+                        annotations: {
+                            boxSWC: {
+                                type: 'box',
+                                yMin: valMin,
+                                yMax: valMax,
+                                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                borderColor: 'rgba(16, 185, 129, 0.3)',
+                                borderWidth: 1,
+                                label: {
+                                    display: true,
+                                    content: 'Tu Zona Óptima (SWC)',
+                                    position: 'start',
+                                    color: 'rgba(16, 185, 129, 0.8)',
+                                    font: { size: 10, weight: 'bold' }
+                                }
+                            }
+                        }
+                    } : {}
+                }
+            }
+        });
+    }
+    </script>
+</body>
+</html>
