@@ -13,7 +13,7 @@
 
     <div class="max-w-4xl mx-auto space-y-6">
         
-        <!-- CABECERA PERSONALIZADA CON SALUDO -->
+        <!-- CABECERA PERSONALIZADA -->
         <header class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <h1 id="welcomeUser" class="text-2xl md:text-3xl font-black text-white">
@@ -31,12 +31,11 @@
         <!-- PANTALLA PRINCIPAL DE SCORE DEL DÍA -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- TARJETA DEL PUNTAJE DE HOY (CAMBIADO DE READINESS) -->
+            <!-- TARJETA DEL PUNTAJE DE HOY (ALINEADO CON COACH) -->
             <div id="readinessCard" class="md:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300">
                 <span class="text-xs font-black uppercase tracking-widest text-gray-400">Tu Puntaje de Hoy</span>
                 
                 <div class="my-4 relative flex items-center justify-center">
-                    <!-- Circulo de fondo decorativo -->
                     <div id="scoreRing" class="w-36 h-36 rounded-full border-8 border-gray-800 flex flex-col items-center justify-center transition-all duration-500">
                         <span id="scoreValue" class="text-5xl font-black text-white">-</span>
                         <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">/ 100 PTS</span>
@@ -51,7 +50,7 @@
                 </div>
             </div>
 
-            <!-- EXPLICACIÓN FISIOLÓGICA TÉCNICA Y ACCESIBLE -->
+            <!-- EXPLICACIÓN FISIOLÓGICA DE TENDENCIA Y SALUD -->
             <div class="md:col-span-2 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between">
                 <div>
                     <h2 class="text-base font-bold text-[#00adb5] mb-3 flex items-center gap-2">
@@ -104,7 +103,6 @@
     let targetAthlete = "";
 
     document.addEventListener("DOMContentLoaded", () => {
-        // Capturar parámetro de la URL
         const urlParams = new URLSearchParams(window.location.search);
         targetAthlete = urlParams.get('atleta');
 
@@ -121,7 +119,6 @@
 
     async function loadDataForAthlete(athleteName) {
         try {
-            // Filtrar directamente desde Supabase solo los datos del atleta consultado por privacidad
             const { data, error } = await supabaseClient
                 .from('registros_hrv')
                 .select('*')
@@ -139,7 +136,8 @@
             const hrvValues = data.map(r => r.hrv_rmssd);
             const pulseValues = data.map(r => r.pulso_bpm);
 
-            const analisis = calcularBiometria(hrvValues, pulseValues);
+            // CÁLCULO ALINEADO Y CALIBRADO CON EL DASHBOARD COACH
+            const analisis = calcularBiometriaAvanzada(hrvValues, pulseValues);
             
             actualizarScoreUI(analisis, latestRecord);
             actualizarExplicacionFisiologica(analisis, latestRecord);
@@ -150,52 +148,61 @@
         }
     }
 
-    function calcularBiometria(hrvArr, pulseArr) {
+    // ALGORITMO INTEGRAL ALINEADO CON EL DASHBOARD COACH
+    function calcularBiometriaAvanzada(hrvArr, pulseArr) {
         const total = hrvArr.length;
         if (total < 5) {
-            return { error: true, msg: `Hola ${targetAthlete}, necesitamos al menos 5 días de mediciones para calcular tu línea base de salud.` };
+            return { error: true, msg: `Hola ${targetAthlete}, necesitamos al menos 5 días de mediciones para construir tu línea base personalizada.` };
         }
 
-        const ventana = total > 14 ? hrvArr.slice(-14) : hrvArr;
-        const n = ventana.length;
-        const prom = ventana.reduce((a, b) => a + b, 0) / n;
-        const variancia = ventana.reduce((acc, v) => acc + Math.pow(v - prom, 2), 0) / n;
-        const desvEst = Math.sqrt(variancia) || 1;
-        const swcMin = prom - (0.5 * desvEst);
-        const swcMax = prom + (0.5 * desvEst);
+        // 1. Línea Base Basal Completa (Media del histórico)
+        const promBasalHRV = hrvArr.reduce((a, b) => a + b, 0) / total;
+        const promBasalPulse = pulseArr.reduce((a, b) => a + b, 0) / pulseArr.length;
 
+        // 2. Cálculo de SWC (Zona Óptima / Confort) basado en la ventana amplia
+        const variancia = hrvArr.reduce((acc, v) => acc + Math.pow(v - promBasalHRV, 2), 0) / total;
+        const desvEst = Math.sqrt(variancia) || 1;
+        const swcMin = promBasalHRV - (0.5 * desvEst);
+        const swcMax = promBasalHRV + (0.5 * desvEst);
+
+        // 3. Métricas de la última medición
         const ultHRV = hrvArr[total - 1];
         const ultPulso = pulseArr[total - 1];
 
-        // Readiness Score
-        const promPulso = pulseArr.reduce((a, b) => a + b, 0) / pulseArr.length;
-        let penHRV = ultHRV < prom ? ((prom - ultHRV) / prom) * 100 * 0.60 : 0;
-        let penPulso = ultPulso > promPulso ? ((ultPulso - promPulso) / promPulso) * 100 * 0.40 : 0;
+        // 4. Evaluación de Tendencia Reciente (Últimos 7 días)
+        const ventana7 = total >= 7 ? hrvArr.slice(-7) : hrvArr;
+        const prom7HRV = ventana7.reduce((a, b) => a + b, 0) / ventana7.length;
+
+        // 5. Ponderación idéntica al Dashboard Coach (Penaliza la caída respecto al pico/basal)
+        let penHRV = ultHRV < promBasalHRV ? ((promBasalHRV - ultHRV) / promBasalHRV) * 100 * 0.65 : 0;
+        let penPulso = ultPulso > promBasalPulse ? ((ultPulso - promBasalPulse) / promBasalPulse) * 100 * 0.35 : 0;
         
+        // Si hay una tendencia descendente continua respecto a la semana anterior, se suma ajuste
+        if (prom7HRV < promBasalHRV) {
+            penHRV += ((promBasalHRV - prom7HRV) / promBasalHRV) * 100 * 0.15;
+        }
+
         let score = Math.round(100 - (penHRV + penPulso));
         score = Math.max(10, Math.min(100, score));
 
         let zonaRiesgo = false;
-        let estado = "Óptimo";
+        let estaEnCaida = ultHRV < promBasalHRV;
 
         if (ultHRV < swcMin) {
             zonaRiesgo = true;
-            estado = "Fatiga Aguda";
             score = Math.min(score, 45);
-        } else if (ultHRV > swcMax) {
-            estado = "Parasimpático Elevado";
         }
 
         return {
             error: false,
             score: score,
-            promedioHRV: prom.toFixed(1),
+            promedioBasal: promBasalHRV.toFixed(1),
             swcMin: swcMin.toFixed(1),
             swcMax: swcMax.toFixed(1),
             ultHRV: ultHRV,
             ultPulso: ultPulso,
             zonaRiesgo: zonaRiesgo,
-            estado: estado
+            estaEnCaida: estaEnCaida
         };
     }
 
@@ -219,22 +226,17 @@
             ringEl.className = "w-36 h-36 rounded-full border-8 border-emerald-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]";
             badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-800 mb-2";
             badgeEl.innerText = "⚡ Estado de Gracia / Recuperación Alta";
-            subtextEl.innerText = "Tu sistema nervioso está balanceado y listo para responder.";
+            subtextEl.innerText = "Tu sistema nervioso está altamente disponible para responder a cargas de impacto.";
         } else if (analisis.score >= 65) {
-            ringEl.className = "w-36 h-36 rounded-full border-8 border-cyan-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(6,182,212,0.3)]";
-            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-cyan-950 text-cyan-300 border border-cyan-800 mb-2";
-            badgeEl.innerText = "👍 Estado Normal / Buena Adaptación";
-            subtextEl.innerText = "Puedes asimilar el entrenamiento planificado sin problemas.";
-        } else if (analisis.score >= 45) {
             ringEl.className = "w-36 h-36 rounded-full border-8 border-amber-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]";
             badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-950 text-amber-300 border border-amber-800 mb-2";
             badgeEl.innerText = "⚠️ Fatiga Moderada / Precaución";
-            subtextEl.innerText = "Tu cuerpo muestra signos leves de sobrecarga. Modera la intensidad.";
+            subtextEl.innerText = "Se detecta asimilación de carga acumulada. Tu cuerpo pide control del volumen.";
         } else {
             ringEl.className = "w-36 h-36 rounded-full border-8 border-rose-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]";
             badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-rose-950 text-rose-300 border border-rose-800 mb-2";
             badgeEl.innerText = "🚨 Zona de Riesgo / Descarga";
-            subtextEl.innerText = "Tu freno vagal cayó significativamente. Se aconseja descanso activo.";
+            subtextEl.innerText = "Tu freno vagal cayó significativamente. Se aconseja descanso activo o regeneración.";
         }
     }
 
@@ -249,34 +251,30 @@
         }
 
         let textoHrv = "";
-        let textoPulso = "";
+        let textoPulso = `Tu frecuencia cardíaca basal amaneció en <strong>${analisis.ultPulso} BPM</strong>. `;
 
-        if (analisis.ultHRV < analisis.swcMin) {
-            textoHrv = `<strong class="text-rose-400">Tu Variabilidad (HRV) de ${analisis.ultHRV} ms cayó por debajo de tu rango de confort (${analisis.swcMin} ms).</strong> Esto indica que tu <em>Sistema Nervioso Parasimpático</em> (tu freno regenerativo) está fatigado, probablemente debido a una carga acumulada de entrenamiento, estrés o falta de descanso.`;
+        if (analisis.estaEnCaida) {
+            textoHrv = `Tu HRV de hoy marcó <strong>${analisis.ultHRV} ms</strong>. Aunque se mantiene dentro de tu franja funcional, <strong>muestra una tendencia descendente respecto a tu promedio basal habitual (${analisis.promedioBasal} ms)</strong>. Esto refleja que tu <em>Sistema Nervioso Parasimpático</em> está acumulando la fatiga de las sesiones recientes.`;
         } else {
-            textoHrv = `<strong class="text-emerald-400">Tu Variabilidad (HRV) se mantiene en ${analisis.ultHRV} ms (dentro de tu zona óptima).</strong> Tu sistema nervioso autónomo mantiene una excelente flexibilidad para adaptarse al esfuerzo físico.`;
+            textoHrv = `<strong class="text-emerald-400">Tu Variabilidad (HRV) se mantiene fuerte en ${analisis.ultHRV} ms (por encima de tu promedio de ${analisis.promedioBasal} ms).</strong> Tu sistema nervioso autónomo mantiene una excelente plasticidad.`;
         }
-
-        textoPulso = `Tu frecuencia cardíaca basal amaneció en <strong>${analisis.ultPulso} BPM</strong>. `;
 
         box.innerHTML = `
             <div class="bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
                 <p class="text-xs text-gray-300 leading-relaxed">${textoHrv}</p>
             </div>
             <div class="bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
-                <p class="text-xs text-gray-300 leading-relaxed">${textoPulso} Mantener un pulso en reposo bajo e interactivo con un HRV alto es el marcador de salud cardiovascular y longevidad deportiva más confiable.</p>
+                <p class="text-xs text-gray-300 leading-relaxed">${textoPulso}Monitorear la interacción entre tu pulso y la variabilidad permite ajustar la carga antes de que aparezcan molestias o sobreentrenamiento.</p>
             </div>
         `;
 
-        // Sugerencia Práctica
+        // Sugerencias Alineadas con la Calibración
         if (analisis.score >= 85) {
             recText.innerText = "Día ideal para buscar registros máximos, entrenamiento de alta intensidad o sesiones técnicamente complejas.";
         } else if (analisis.score >= 65) {
-            recText.innerText = "Sigue con tu plan de entrenamiento habitual. Asimilas la carga adecuadamente.";
-        } else if (analisis.score >= 45) {
-            recText.innerText = "Reduce el volumen total un 20-30%. Enfócate en técnica limpia y evita llegar al fallo muscular.";
+            recText.innerText = "Reduce el volumen total entre un 20% y 30%. Enfócate en ejecuciones técnicas impecables sin llegar al fallo agotador.";
         } else {
-            recText.innerText = "Prioriza regeneración: movilidad articular suave, caminata liviana, hidratación y 8+ horas de sueño.";
+            recText.innerText = "Prioriza regeneración: movilidad articular suave, caminata liviana, hidratación profunda y descanso de calidad.";
         }
     }
 
