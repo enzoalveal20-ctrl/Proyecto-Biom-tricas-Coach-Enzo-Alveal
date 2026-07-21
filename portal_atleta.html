@@ -13,26 +13,27 @@
 
     <div class="max-w-4xl mx-auto space-y-6">
         
-        <!-- CABECERA Y SELECTOR DE ATLETA -->
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#1e1e1e] p-5 rounded-2xl border border-gray-800 shadow-xl gap-4">
+        <!-- CABECERA PERSONALIZADA CON SALUDO -->
+        <header class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-[#00adb5]">Mi Estado Biométrico</h1>
+                <h1 id="welcomeUser" class="text-2xl md:text-3xl font-black text-white">
+                    ¡Hola! <span class="text-[#00adb5]">Cargando...</span>
+                </h1>
                 <p class="text-xs text-gray-400 mt-1">Monitoreo de Salud, Recuperación y Adaptación Fisiológica</p>
             </div>
             
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-                <select id="athleteSelect" onchange="onAthleteChange()" class="bg-[#252525] border border-gray-700 text-white text-sm rounded-xl p-2.5 focus:ring-[#00adb5] focus:border-[#00adb5] w-full sm:w-48">
-                    <option value="">Cargando atletas...</option>
-                </select>
+            <div id="userBadgeHeader" class="hidden md:flex items-center gap-2 bg-[#252525] px-4 py-2 rounded-xl border border-gray-700">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="headerName" class="text-xs font-bold text-gray-300">Atleta Activo</span>
             </div>
         </header>
 
         <!-- PANTALLA PRINCIPAL DE SCORE DEL DÍA -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            <!-- TARJETA DEL SCORE READINESS -->
+            <!-- TARJETA DEL PUNTAJE DE HOY (CAMBIADO DE READINESS) -->
             <div id="readinessCard" class="md:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300">
-                <span class="text-xs font-black uppercase tracking-widest text-gray-400">Readiness de Hoy</span>
+                <span class="text-xs font-black uppercase tracking-widest text-gray-400">Tu Puntaje de Hoy</span>
                 
                 <div class="my-4 relative flex items-center justify-center">
                     <!-- Circulo de fondo decorativo -->
@@ -44,7 +45,7 @@
 
                 <div class="w-full">
                     <div id="statusBadge" class="py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-400 mb-2">
-                        Selecciona tu nombre
+                        Procesando datos
                     </div>
                     <p id="statusSubtext" class="text-xs text-gray-400 font-medium">-</p>
                 </div>
@@ -58,7 +59,7 @@
                     </h2>
                     
                     <div id="physioExplanation" class="space-y-3 text-sm text-gray-300 leading-relaxed">
-                        <p class="text-gray-500 italic">Selecciona tu usuario para generar el diagnóstico fisiológico de hoy.</p>
+                        <p class="text-gray-500 italic">Buscando tus datos en el sistema...</p>
                     </div>
                 </div>
 
@@ -99,85 +100,60 @@
         
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let rawData = [];
-    let athletesData = {};
     let athleteChartInstance = null;
+    let targetAthlete = "";
 
     document.addEventListener("DOMContentLoaded", () => {
-        loadDataFromSupabase();
+        // Capturar parámetro de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        targetAthlete = urlParams.get('atleta');
+
+        if (targetAthlete) {
+            targetAthlete = decodeURIComponent(targetAthlete).trim();
+            document.getElementById('welcomeUser').innerHTML = `¡Hola, <span class="text-[#00adb5]">${targetAthlete}</span>!`;
+            document.getElementById('headerName').innerText = targetAthlete;
+            loadDataForAthlete(targetAthlete);
+        } else {
+            document.getElementById('welcomeUser').innerHTML = `¡Hola, <span class="text-[#00adb5]">Atleta</span>!`;
+            document.getElementById('physioExplanation').innerHTML = `<p class="text-amber-400 font-medium">⚠️ No se especificó ningún atleta en el enlace. Por favor ingresa desde la consola de evaluación.</p>`;
+        }
     });
 
-    async function loadDataFromSupabase() {
+    async function loadDataForAthlete(athleteName) {
         try {
+            // Filtrar directamente desde Supabase solo los datos del atleta consultado por privacidad
             const { data, error } = await supabaseClient
                 .from('registros_hrv')
                 .select('*')
+                .eq('alumno_nombre', athleteName)
                 .order('fecha', { ascending: true });
                 
             if (error) throw error;
+
+            if (!data || data.length === 0) {
+                document.getElementById('physioExplanation').innerHTML = `<p class="text-gray-400">No encontramos registros previos a nombre de <strong>${athleteName}</strong>.</p>`;
+                return;
+            }
+
+            const latestRecord = data[data.length - 1];
+            const hrvValues = data.map(r => r.hrv_rmssd);
+            const pulseValues = data.map(r => r.pulso_bpm);
+
+            const analisis = calcularBiometria(hrvValues, pulseValues);
             
-            rawData = data;
-            processAthletesData();
-            populateAthleteDropdown();
+            actualizarScoreUI(analisis, latestRecord);
+            actualizarExplicacionFisiologica(analisis, latestRecord);
+            renderAthleteChart(data, analisis);
+
         } catch (err) {
             console.error("Error al cargar datos:", err);
         }
     }
 
-    function processAthletesData() {
-        athletesData = {};
-        rawData.forEach(row => {
-            const name = row.alumno_nombre;
-            if (!athletesData[name]) {
-                athletesData[name] = [];
-            }
-            athletesData[name].push(row);
-        });
-    }
-
-function populateAthleteDropdown() {
-    const select = document.getElementById('athleteSelect');
-    select.innerHTML = '<option value="">-- Selecciona tu Nombre --</option>';
-    
-    const names = Object.keys(athletesData);
-    names.forEach(name => {
-        select.innerHTML += `<option value="${name}">${name}</option>`;
-    });
-
-    // Capturar el parámetro "atleta" enviado desde index.html
-    const urlParams = new URLSearchParams(window.location.search);
-    const atletaURL = urlParams.get('atleta');
-
-    if (atletaURL && athletesData[atletaURL]) {
-        select.value = atletaURL;
-        onAthleteChange();
-    } else if (names.length > 0) {
-        select.value = names[0];
-        onAthleteChange();
-    }
-}
-
-    function onAthleteChange() {
-        const selectedName = document.getElementById('athleteSelect').value;
-        if (!selectedName || !athletesData[selectedName]) return;
-
-        const records = athletesData[selectedName];
-        const latestRecord = records[records.length - 1];
-        
-        const hrvValues = records.map(r => r.hrv_rmssd);
-        const pulseValues = records.map(r => r.pulso_bpm);
-
-        const analisis = calcularBiometria(hrvValues, pulseValues);
-        
-        actualizarScoreUI(analisis, latestRecord);
-        actualizarExplicacionFisiologica(analisis, latestRecord);
-        renderAthleteChart(records, analisis);
-    }
-
     function calcularBiometria(hrvArr, pulseArr) {
         const total = hrvArr.length;
         if (total < 5) {
-            return { error: true, msg: "Necesitamos al menos 5 días de mediciones para calcular tu línea base." };
+            return { error: true, msg: `Hola ${targetAthlete}, necesitamos al menos 5 días de mediciones para calcular tu línea base de salud.` };
         }
 
         const ventana = total > 14 ? hrvArr.slice(-14) : hrvArr;
@@ -267,7 +243,7 @@ function populateAthleteDropdown() {
         const recText = document.getElementById('recommendationText');
 
         if (analisis.error) {
-            box.innerHTML = `<p class="text-gray-400">${analisis.msg}</p>`;
+            box.innerHTML = `<p class="text-gray-400 text-xs">${analisis.msg}</p>`;
             recText.innerText = "Continúa registrando tus datos por las mañanas.";
             return;
         }
