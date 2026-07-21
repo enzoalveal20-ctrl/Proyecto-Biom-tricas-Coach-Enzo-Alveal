@@ -117,7 +117,7 @@
         }
     });
 
-    async function loadDataForAthlete(athleteName) {
+async function loadDataForAthlete(athleteName) {
         try {
             const { data, error } = await supabaseClient
                 .from('registros_hrv')
@@ -131,6 +131,9 @@
                 document.getElementById('physioExplanation').innerHTML = `<p class="text-gray-400">No encontramos registros previos a nombre de <strong>${athleteName}</strong>.</p>`;
                 return;
             }
+
+            // 🛑 GARANTIZAR ORDEN CRONOLÓGICO STRICTO POR TIMESTAMP
+            data.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
             const latestRecord = data[data.length - 1];
             const hrvValues = data.map(r => r.hrv_rmssd);
@@ -178,8 +181,8 @@
         const swcMax = promBasalHRV + (0.55 * desvEst);
 
         // 3. Últimos valores registrados (el día de hoy)
-        const ultHRV = hrvArr[total - 1];
-        const ultPulso = pulseArr[total - 1];
+        const ultHRV = Number(hrvArr[total - 1]);
+        const ultPulso = Number(pulseArr[total - 1]);
 
         // 4. Cálculo Proporcional del Score (Respetando el estado actual)
         let penHRV = ultHRV < promBasalHRV ? ((promBasalHRV - ultHRV) / promBasalHRV) * 100 * 0.45 : 0;
