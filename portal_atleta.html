@@ -148,50 +148,57 @@
         }
     }
 
-    // ALGORITMO INTEGRAL ALINEADO CON EL DASHBOARD COACH
+// ALGORITMO CON VENTANA MÓVIL DESLIZANTE DE 14 DÍAS (SLIDING WINDOW)
     function calcularBiometriaAvanzada(hrvArr, pulseArr) {
         const total = hrvArr.length;
         if (total < 5) {
-            return { error: true, msg: `Hola ${targetAthlete}, necesitamos al menos 5 días de mediciones para construir tu línea base personalizada.` };
+            return { 
+                error: true, 
+                msg: `Hola ${targetAthlete}, necesitamos al menos 5 días de mediciones para construir tu primera línea base personal.` 
+            };
         }
 
-        // 1. Línea Base Basal Completa (Media del histórico)
-        const promBasalHRV = hrvArr.reduce((a, b) => a + b, 0) / total;
-        const promBasalPulse = pulseArr.reduce((a, b) => a + b, 0) / pulseArr.length;
+        // --- LÓGICA DE VENTANA DESLIZANTE (SLIDING WINDOW) ---
+        // Si hay menos de 14 días, toma todos los disponibles.
+        // Si hay 14 o más días, se desplaza tomando siempre los ÚLTIMOS 14 DÍAS (el día 15 reemplaza al 1).
+        const diasVentana = 14;
+        const ventanaHRV = total > diasVentana ? hrvArr.slice(-diasVentana) : hrvArr;
+        const ventanaPulso = total > diasVentana ? pulseArr.slice(-diasVentana) : pulseArr;
 
-        // 2. Cálculo de SWC (Zona Óptima / Confort) basado en la ventana amplia
-        const variancia = hrvArr.reduce((acc, v) => acc + Math.pow(v - promBasalHRV, 2), 0) / total;
+        // 1. Promedio Basal Dinámico de la Ventana Móvil
+        const promBasalHRV = ventanaHRV.reduce((a, b) => a + b, 0) / ventanaHRV.length;
+        const promBasalPulse = ventanaPulso.reduce((a, b) => a + b, 0) / ventanaPulso.length;
+
+        // 2. Desviación Estándar y Rango SWC (Zona Óptima / Franja Verde)
+        const variancia = ventanaHRV.reduce((acc, v) => acc + Math.pow(v - promBasalHRV, 2), 0) / ventanaHRV.length;
         const desvEst = Math.sqrt(variancia) || 1;
-        const swcMin = promBasalHRV - (0.5 * desvEst);
-        const swcMax = promBasalHRV + (0.5 * desvEst);
+        
+        // Coeficiente fisiológico para la franja de confort (SWC)
+        const swcMin = promBasalHRV - (0.55 * desvEst);
+        const swcMax = promBasalHRV + (0.55 * desvEst);
 
-        // 3. Métricas de la última medición
+        // 3. Últimos valores registrados (el día de hoy)
         const ultHRV = hrvArr[total - 1];
         const ultPulso = pulseArr[total - 1];
 
-        // 4. Evaluación de Tendencia Reciente (Últimos 7 días)
-        const ventana7 = total >= 7 ? hrvArr.slice(-7) : hrvArr;
-        const prom7HRV = ventana7.reduce((a, b) => a + b, 0) / ventana7.length;
-
-        // 5. Ponderación idéntica al Dashboard Coach (Penaliza la caída respecto al pico/basal)
-        let penHRV = ultHRV < promBasalHRV ? ((promBasalHRV - ultHRV) / promBasalHRV) * 100 * 0.65 : 0;
-        let penPulso = ultPulso > promBasalPulse ? ((ultPulso - promBasalPulse) / promBasalPulse) * 100 * 0.35 : 0;
+        // 4. Cálculo Proporcional del Score (Respetando el estado actual)
+        let penHRV = ultHRV < promBasalHRV ? ((promBasalHRV - ultHRV) / promBasalHRV) * 100 * 0.45 : 0;
+        let penPulso = ultPulso > promBasalPulse ? ((ultPulso - promBasalPulse) / promBasalPulse) * 100 * 0.20 : 0;
         
-        // Si hay una tendencia descendente continua respecto a la semana anterior, se suma ajuste
-        if (prom7HRV < promBasalHRV) {
-            penHRV += ((promBasalHRV - prom7HRV) / promBasalHRV) * 100 * 0.15;
-        }
-
         let score = Math.round(100 - (penHRV + penPulso));
-        score = Math.max(10, Math.min(100, score));
 
-        let zonaRiesgo = false;
-        let estaEnCaida = ultHRV < promBasalHRV;
-
-        if (ultHRV < swcMin) {
-            zonaRiesgo = true;
-            score = Math.min(score, 45);
+        // Regla de Protección del Atleta:
+        // Si el HRV de hoy está dentro o por encima de su SWC Mínimo (Franja Verde), 
+        // el puntaje no debe caer por debajo de 75 PTS.
+        if (ultHRV >= swcMin) {
+            score = Math.max(75, Math.min(100, score));
+        } else {
+            // Solo si perfora la franja verde hacia abajo entra en zona de alerta/descarga
+            score = Math.max(10, Math.min(65, score));
         }
+
+        let zonaRiesgo = ultHRV < swcMin;
+        let estaEnCaida = ultHRV < promBasalHRV;
 
         return {
             error: false,
@@ -199,6 +206,7 @@
             promedioBasal: promBasalHRV.toFixed(1),
             swcMin: swcMin.toFixed(1),
             swcMax: swcMax.toFixed(1),
+            diasEvaluados: ventanaHRV.length,
             ultHRV: ultHRV,
             ultPulso: ultPulso,
             zonaRiesgo: zonaRiesgo,
