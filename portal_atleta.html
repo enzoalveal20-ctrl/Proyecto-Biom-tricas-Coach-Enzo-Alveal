@@ -135,21 +135,27 @@
         });
     }
 
-    function populateAthleteDropdown() {
-        const select = document.getElementById('athleteSelect');
-        select.innerHTML = '<option value="">-- Selecciona tu Nombre --</option>';
-        
-        const names = Object.keys(athletesData);
-        names.forEach(name => {
-            select.innerHTML += `<option value="${name}">${name}</option>`;
-        });
+function populateAthleteDropdown() {
+    const select = document.getElementById('athleteSelect');
+    select.innerHTML = '<option value="">-- Selecciona tu Nombre --</option>';
+    
+    const names = Object.keys(athletesData);
+    names.forEach(name => {
+        select.innerHTML += `<option value="${name}">${name}</option>`;
+    });
 
-        // Si hay al menos un atleta, seleccionar el primero por defecto
-        if (names.length > 0) {
-            select.value = names[0];
-            onAthleteChange();
-        }
+    // Capturar el parámetro "atleta" enviado desde index.html
+    const urlParams = new URLSearchParams(window.location.search);
+    const atletaURL = urlParams.get('atleta');
+
+    if (atletaURL && athletesData[atletaURL]) {
+        select.value = atletaURL;
+        onAthleteChange();
+    } else if (names.length > 0) {
+        select.value = names[0];
+        onAthleteChange();
     }
+}
 
     function onAthleteChange() {
         const selectedName = document.getElementById('athleteSelect').value;
