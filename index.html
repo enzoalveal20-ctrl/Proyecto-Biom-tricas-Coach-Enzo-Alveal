@@ -258,8 +258,25 @@ function endTest() {
         cloudStatus.innerText = "Sincronizando con Supabase...";
         resultDiv.style.display = 'block';
         
-        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
+       await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
+        
+        const nombreAlumno = alumnoInput.value.trim();
+        const urlPortal = `portal_atleta.html?atleta=${encodeURIComponent(nombreAlumno)}`;
+
         resetUI();
+
+        // Mostrar tarjeta con enlace directo al informe
+        const statusDiv = document.getElementById('statusText') || document.getElementById('resultadoContainer');
+        if (statusDiv) {
+            statusDiv.innerHTML = `
+                <div class="p-4 bg-emerald-950/80 border border-emerald-800 rounded-xl text-center space-y-3 mt-4">
+                    <p class="text-emerald-300 font-bold text-base">¡Medición Guardada con Éxito! 🎉</p>
+                    <a href="${urlPortal}" class="inline-block bg-[#00adb5] hover:bg-[#008c94] text-white font-bold py-2.5 px-5 rounded-xl text-sm transition-all shadow-lg transform hover:scale-105">
+                        📊 Ver Mi Estado Biométrico y Score de Hoy
+                    </a>
+                </div>
+            `;
+        }
     }, 600);
 }
 
