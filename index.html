@@ -3,13 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoreo HRV en Tiempo Real</title>
+    <title>Evaluación Biométrica Matutina - GIPAP</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        :root {
+            --bg-dark: #121212;
+            --card-bg: #1e1e1e;
+            --accent-blue: #00adb5;
+            --accent-green: #28a745;
+            --text-light: #ffffff;
+            --text-muted: #aaaaaa;
+            --input-bg: #2b2b2b;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -19,37 +29,92 @@
             padding: 20px;
             box-sizing: border-box;
         }
+
         .container {
             width: 100%;
             max-width: 420px;
-            text-align: center;
-            background: #1e1e1e;
+            background: var(--card-bg);
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            box-sizing: border-box;
         }
-        input, button {
+
+        .wizard-bar {
             width: 100%;
-            padding: 15px;
-            margin-top: 15px;
-            font-size: 16px;
-            border-radius: 25px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .wizard-fill {
+            height: 100%;
+            width: 33.3%;
+            background: var(--accent-blue);
+            transition: width 0.3s ease;
+        }
+
+        .step-card { display: none; }
+        .step-card.active { display: block; }
+
+        h2 { margin-top: 0; color: var(--accent-blue); font-size: 1.3rem; text-align: center; }
+        .subtitle { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 15px; }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+            border-radius: 20px;
             box-sizing: border-box;
             border: none;
         }
-        input {
-            background-color: #2b2b2b;
+
+        input, select {
+            background-color: var(--input-bg);
             color: white;
             text-align: center;
         }
+
+        select { text-align-last: center; }
+
         button {
-            background-color: #00adb5;
+            background-color: var(--accent-blue);
             color: white;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s, opacity 0.2s;
+            margin-top: 10px;
         }
         button:disabled { background-color: #444444; cursor: not-allowed; }
+
+        .btn-secondary {
+            background-color: #333333;
+            color: var(--text-muted);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .nav-links button {
+            font-size: 12px;
+            padding: 10px;
+        }
+
         #progressContainer {
             margin-top: 20px;
             background-color: #333;
@@ -59,42 +124,114 @@
         }
         #progressBar {
             width: 0%;
-            height: 20px;
-            background-color: #00adb5;
+            height: 18px;
+            background-color: var(--accent-blue);
             transition: width 0.1s linear;
         }
-        #status { margin-top: 15px; font-size: 14px; color: #aaaaaa; padding: 0 10px; }
+
+        #status { margin-top: 15px; font-size: 13px; color: var(--text-muted); text-align: center; }
+
         #result {
-            margin-top: 25px;
+            margin-top: 20px;
             padding: 15px;
             background: #252525;
             border-radius: 10px;
             display: none;
             border: 1px solid #333;
+            text-align: center;
         }
+
         video, canvas { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Test de HRV Matutino</h2>
-    <p style="font-size: 13px; color: #ccc;">Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash.</p>
-    
-    <input type="text" id="alumnoInput" placeholder="Escribe tu Nombre y Apellido" />
-    <button id="startBtn">Iniciar Medición (60s)</button>
-    
-    <div id="progressContainer">
-        <div id="progressBar"></div>
+    <div class="wizard-bar">
+        <div class="wizard-fill" id="wizardProgress"></div>
     </div>
-    
-    <div id="status">Ingresa tu nombre para comenzar.</div>
-    
-    <div id="result">
-        <h3>Resultado de hoy</h3>
-        <p id="rmssdVal" style="font-size: 28px; font-weight: bold; color: #00adb5; margin: 10px 0;"></p>
-        <p id="pulseVal" style="font-size: 15px; color: #eee;"></p>
-        <p id="cloudStatus" style="font-size: 13px; color: #28a745; font-weight: bold; margin-top: 10px;"></p>
+
+    <!-- PASO 1: Identificación y Sueño -->
+    <div class="step-card active" id="step1">
+        <h2>🌙 1. Sueño Nocturno</h2>
+        <p class="subtitle">Registra tu descanso (Opcional).</p>
+
+        <div class="form-group">
+            <label for="alumnoInput">Nombre y Apellido del Atleta:</label>
+            <input type="text" id="alumnoInput" placeholder="Ej: Enzo Alveal" />
+        </div>
+
+        <div class="form-group">
+            <label for="horasSueno">Horas de Sueño Totales:</label>
+            <input type="number" id="horasSueno" step="0.5" placeholder="Ej: 7.5 (Omitir si no recuerdas)" />
+        </div>
+
+        <div class="form-group">
+            <label for="calidadSueno">Calidad Subjetiva del Sueño:</label>
+            <select id="calidadSueno">
+                <option value="">-- Sin registrar --</option>
+                <option value="5">5 - Excelente / Profundo</option>
+                <option value="4">4 - Bueno</option>
+                <option value="3">3 - Regular</option>
+                <option value="2">2 - Malo / Interrumpido</option>
+                <option value="1">1 - Muy Malo / Insomnio</option>
+            </select>
+        </div>
+
+        <button onclick="goToStep(2)">Continuar a Test PPG (Cámara) ➔</button>
+        <div class="nav-links">
+            <button class="btn-secondary" onclick="goToStep(3)">Saltar a Glucosa / Guardar ➔</button>
+        </div>
+    </div>
+
+    <!-- PASO 2: Medición HRV por Cámara -->
+    <div class="step-card" id="step2">
+        <h2>❤️ 2. Medición HRV Matutina</h2>
+        <p class="subtitle">Cubre la cámara trasera y el flash con el índice (Opcional).</p>
+
+        <button id="startBtn">Iniciar Medición Óptica (60s)</button>
+
+        <div id="progressContainer">
+            <div id="progressBar"></div>
+        </div>
+
+        <div id="status">Listo para medir.</div>
+
+        <div id="result">
+            <p id="rmssdVal" style="font-size: 26px; font-weight: bold; color: var(--accent-blue); margin: 5px 0;"></p>
+            <p id="pulseVal" style="font-size: 14px; color: #eee; margin: 0;"></p>
+        </div>
+
+        <button class="btn-secondary" id="btnNextPpg" style="display:none;" onclick="goToStep(3)">Continuar a Glucosa ➔</button>
+        <div class="nav-links">
+            <button class="btn-secondary" onclick="goToStep(1)">⬅️ Volver</button>
+            <button class="btn-secondary" onclick="goToStep(3)">Saltar este paso ➔</button>
+        </div>
+    </div>
+
+    <!-- PASO 3: Glucosa Basal y Envío -->
+    <div class="step-card" id="step3">
+        <h2>🩸 3. Metabolismo & Glucosa Basal</h2>
+        <p class="subtitle">Glicemia basal en ayunas (Opcional).</p>
+
+        <div class="form-group">
+            <label for="glucosaBasal">Glucosa Basal (mg/dL):</label>
+            <input type="number" id="glucosaBasal" step="0.1" placeholder="Ej: 92.5 (Omitir si no tienes)" />
+        </div>
+
+        <div class="form-group">
+            <label for="tendenciaGlucosa">Tendencia / Estado:</label>
+            <select id="tendenciaGlucosa">
+                <option value="Estable" selected>Estable</option>
+                <option value="Elevada">Elevada</option>
+                <option value="Baja">Baja</option>
+            </select>
+        </div>
+
+        <button onclick="finalizarYEnviar()">💾 Guardar Datos Capturados</button>
+        <button class="btn-secondary" onclick="goToStep(2)">⬅️ Volver al Test PPG</button>
+
+        <div id="cloudStatus" style="font-size: 13px; margin-top: 15px; text-align: center;"></div>
     </div>
 </div>
 
@@ -104,11 +241,10 @@
 <script>
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
-    
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const startBtn = document.getElementById('startBtn');
 const alumnoInput = document.getElementById('alumnoInput');
+const startBtn = document.getElementById('startBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressBar = document.getElementById('progressBar');
 const statusDiv = document.getElementById('status');
@@ -116,6 +252,7 @@ const resultDiv = document.getElementById('result');
 const rmssdVal = document.getElementById('rmssdVal');
 const pulseVal = document.getElementById('pulseVal');
 const cloudStatus = document.getElementById('cloudStatus');
+const btnNextPpg = document.getElementById('btnNextPpg');
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -127,30 +264,38 @@ let timeStamps = [];
 let startTime = 0;
 const DURATION = 60000;
 
+let rmssdCalculado = null;
+let bpmCalculado = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     const nombreGuardado = localStorage.getItem('nombre_alumno_hrv');
     if (nombreGuardado) {
         alumnoInput.value = nombreGuardado;
-        statusDiv.innerText = "Listo para comenzar.";
     }
 });
+
+function goToStep(step) {
+    if (step > 1 && !alumnoInput.value.trim()) {
+        alert("Por favor, ingresa tu nombre y apellido para identificar la medición.");
+        return;
+    }
+    if (alumnoInput.value.trim()) {
+        localStorage.setItem('nombre_alumno_hrv', alumnoInput.value.trim());
+    }
+
+    document.querySelectorAll('.step-card').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step${step}`).classList.add('active');
+    document.getElementById('wizardProgress').style.width = `${(step / 3) * 100}%`;
+}
 
 startBtn.addEventListener('click', startTest);
 
 async function startTest() {
-    const nombre = alumnoInput.value.trim();
-    if (!nombre) {
-        alert("Por favor, ingresa tu nombre y apellido antes de comenzar.");
-        return;
-    }
-    
-    localStorage.setItem('nombre_alumno_hrv', nombre);
-    
     ppgSignal = [];
     timeStamps = [];
     resultDiv.style.display = 'none';
+    btnNextPpg.style.display = 'none';
     startBtn.disabled = true;
-    alumnoInput.disabled = true;
     progressContainer.style.display = 'block';
     progressBar.style.width = '0%';
     statusDiv.innerText = "Cargando lentes ópticos móviles...";
@@ -227,7 +372,6 @@ function analyzeFrame() {
 
 function resetUI() {
     startBtn.disabled = false;
-    alumnoInput.disabled = false;
     progressContainer.style.display = 'none';
 }
 
@@ -240,45 +384,29 @@ function endTest() {
     
     statusDiv.innerText = "Filtrando señal con algoritmo de percentil móvil...";
     
-    setTimeout(async () => {
+    setTimeout(() => {
         const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
         
         if(rrIntervals.length < 20) {
-            statusDiv.innerText = `Lectura incompleta (${rrIntervals.length} latidos). Recuerda posar el dedo suavemente sobre el flash sin aplastarlo para no cortar el flujo sanguíneo.`;
+            statusDiv.innerText = `Lectura incompleta (${rrIntervals.length} latidos). Recuerda posar el dedo suavemente sobre el flash.`;
             resetUI();
             return;
         }
         
-        const rmssd = calculateRMSSD(rrIntervals);
+        rmssdCalculado = calculateRMSSD(rrIntervals);
         const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
-        const bpm = Math.round(60000 / avgRR);
+        bpmCalculado = Math.round(60000 / avgRR);
         
-        rmssdVal.innerText = `${rmssd.toFixed(1)} ms`;
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpm} BPM (Basado en ${rrIntervals.length} ondas estables)`;
-        cloudStatus.innerText = "Sincronizando con Supabase...";
+        rmssdVal.innerText = `${rmssdCalculado.toFixed(1)} ms`;
+        pulseVal.innerText = `Frecuencia Cardíaca: ${bpmCalculado} BPM`;
+        statusDiv.innerText = "✓ Medición PPG completada con éxito.";
+        
         resultDiv.style.display = 'block';
-        
-        // 1. Guardar en Supabase
-        await enviarDatosSupabase(alumnoInput.value.trim(), rmssd, bpm);
-        
-        const nombreAlumno = alumnoInput.value.trim();
-        const urlPortal = `portal_atleta.html?atleta=${encodeURIComponent(nombreAlumno)}`;
-
+        btnNextPpg.style.display = 'block';
         resetUI();
-
-        // 2. Insertar el botón usando el elemento correcto (cloudStatus)
-        cloudStatus.innerHTML = `
-            <div style="margin-top: 15px; padding: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 10px;">
-                <p style="color: #28a745; font-weight: bold; margin-bottom: 10px; font-size: 13px;">✓ Sincronizado correctamente con tu base de datos.</p>
-                <a href="${urlPortal}" style="display: inline-block; background-color: #00adb5; color: white; font-weight: bold; padding: 10px 18px; border-radius: 20px; text-decoration: none; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-                    📊 Ver Mi Informe Fisiológico de Hoy →
-                </a>
-            </div>
-        `;
     }, 600);
 }
 
-// 🧠 FILTRO DE PERCENTIL CON CONTROL DE JITTER DE FRAME (MÁXIMA PRECISIÓN RMSSD)
 function calculateRRIntervals(signal, timestamps) {
     const rrIntervals = [];
     const smoothSignal = [];
@@ -286,7 +414,6 @@ function calculateRRIntervals(signal, timestamps) {
 
     if (signal.length < 60) return [];
 
-    // 1. Eliminación de la deriva del flash (Media móvil centrada)
     for(let i = 0; i < signal.length; i++) {
         let start = Math.max(0, i - windowSize);
         let end = Math.min(signal.length, i + windowSize);
@@ -295,27 +422,19 @@ function calculateRRIntervals(signal, timestamps) {
         smoothSignal.push(signal[i] - (localMean / (end - start)));
     }
 
-    // 2. Encontrar el Percentil 75 para picos limpios
     const sortedValues = [...smoothSignal].sort((a, b) => a - b);
     const indexPercentil = Math.floor(sortedValues.length * 0.75);
     const globalThreshold = Math.max(sortedValues[indexPercentil], 0.01);
 
     let lastPeakTime = null;
 
-    // 3. Extracción con bloqueo refractario antidicrótico
     for (let i = 1; i < smoothSignal.length - 1; i++) {
         if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
             const currentPeakTime = timestamps[i];
 
             if (lastPeakTime !== null) {
                 const rr = currentPeakTime - lastPeakTime;
-
-                // Bloqueo de onda dicrótica / Doble pico
-                if (rr < 600) {
-                    continue; 
-                }
-
-                // Ventana fisiológica (38 a 100 BPM)
+                if (rr < 600) continue; 
                 if (rr >= 600 && rr <= 1600) {
                     rrIntervals.push(rr);
                     lastPeakTime = currentPeakTime;
@@ -326,26 +445,20 @@ function calculateRRIntervals(signal, timestamps) {
         }
     }
 
-    // 4. Limpieza de Outliers y Estabilización de Jitter
     if (rrIntervals.length < 5) return [];
     
     const finalRR = [];
     const avgGlobal = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
-    
-    // Filtramos intervalos que se desvíen demasiado del promedio general preliminar
     const filteredOutliers = rrIntervals.filter(rr => Math.abs(rr - avgGlobal) / avgGlobal <= 0.25);
     
     if (filteredOutliers.length < 3) return [];
 
-    // Filtro dinámico adaptativo paso a paso para limpiar el ruido del frame de la cámara
     finalRR.push(filteredOutliers[0]);
     for (let i = 1; i < filteredOutliers.length; i++) {
         const prev = finalRR[finalRR.length - 1];
         const curr = filteredOutliers[i];
         const pctChange = Math.abs(curr - prev) / prev;
 
-        // Si el salto entre latidos consecutivos es > 15%, es error de muestreo óptico (Jitter).
-        // Lo suavizamos limitando el cambio drástico para proteger el cálculo del RMSSD.
         if (pctChange > 0.15) {
             const sign = curr > prev ? 1 : -1;
             finalRR.push(prev + (prev * 0.08 * sign)); 
@@ -364,41 +477,88 @@ function calculateRMSSD(rrIntervals) {
 
     for (let i = 0; i < rrIntervals.length - 1; i++) {
         const diff = rrIntervals[i] - rrIntervals[i+1];
-        
-        // Un salto de más de 120ms entre latidos en reposo es un artefacto óptico remanente
         if (Math.abs(diff) > 120) continue; 
-
         sumSquaredDiffs += diff * diff;
         validDiffsCount++;
     }
 
-    if (validDiffsCount === 0) return 35.0; // Valor basal de contingencia si todo se anula
+    if (validDiffsCount === 0) return 35.0; 
     return Math.sqrt(sumSquaredDiffs / validDiffsCount);
 }
 
-async function enviarDatosSupabase(nombre, rmssd, bpm) {
+// readiness adaptable a los datos presentes
+function calcularReadinessGlobal(rmssd, horas, calidad) {
+    let score = 70; 
+    if (rmssd) {
+        if (rmssd > 60) score += 15;
+        else if (rmssd < 40) score -= 15;
+    }
+    if (horas) {
+        if (horas >= 7.5) score += 10;
+        else if (horas < 6) score -= 15;
+    }
+    if (calidad) {
+        score += (parseInt(calidad) - 3) * 5;
+    }
+    return Math.min(100, Math.max(10, Math.round(score)));
+}
+
+async function finalizarYEnviar() {
+    const nombre = alumnoInput.value.trim();
+    const horasInput = document.getElementById('horasSueno').value;
+    const calidadInput = document.getElementById('calidadSueno').value;
+    const glucosaInput = document.getElementById('glucosaBasal').value;
+    const tendencia = document.getElementById('tendenciaGlucosa').value;
+    
+    const horas = horasInput ? parseFloat(horasInput) : null;
+    const calidad = calidadInput ? parseInt(calidadInput) : null;
+    const glucosa = glucosaInput ? parseFloat(glucosaInput) : null;
+
+    if (!rmssdCalculado && !horas && !glucosa) {
+        alert("Atención: No has registrado ningún parámetro (ni HRV, ni Sueño, ni Glucosa). Registra al menos uno para guardar.");
+        return;
+    }
+
     const tzoffset = (new Date()).getTimezoneOffset() * 60000;
     const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
-    
+    const readinessScore = calcularReadinessGlobal(rmssdCalculado, horas, calidad);
+
+    cloudStatus.innerText = "Guardando datos en Supabase...";
+    cloudStatus.style.color = "white";
+
     try {
-        const { data, error } = await supabaseClient
+        const payload = {
+            alumno_nombre: nombre,
+            fecha: localISOTime,
+            hrv_rmssd: rmssdCalculado ? parseFloat(rmssdCalculado.toFixed(1)) : null,
+            pulso_bpm: bpmCalculado ? parseInt(bpmCalculado) : null,
+            horas_sueno: horas,
+            calidad_sueno_subjetiva: calidad,
+            glucosa_basal_mgdl: glucosa,
+            tendencia_glucosa: glucosa ? tendencia : null,
+            readiness_score: readinessScore
+        };
+
+        const { error } = await supabaseClient
             .from('registros_hrv')
-            .insert([
-                { 
-                    alumno_nombre: nombre,
-                    hrv_rmssd: parseFloat(rmssd.toFixed(1)),
-                    pulso_bpm: parseInt(bpm),
-                    fecha: localISOTime 
-                }
-            ]);
-            
+            .insert([payload]);
+
         if (error) throw error;
-        
-        cloudStatus.innerText = "✓ Sincronizado correctamente con tu base de datos.";
-        cloudStatus.style.color = "#28a745";
+
+        const urlPortal = `portal_atleta.html?atleta=${encodeURIComponent(nombre)}`;
+
+        cloudStatus.innerHTML = `
+            <div style="padding: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 10px; margin-top:10px;">
+                <p style="color: #28a745; font-weight: bold; margin-bottom: 10px; font-size: 13px;">✓ Datos guardados exitosamente.</p>
+                <p style="font-size: 15px; color: #fff; margin-bottom: 10px;">Readiness Score Estimado: <strong>${readinessScore}/100</strong></p>
+                <a href="${urlPortal}" style="display: inline-block; background-color: #00adb5; color: white; font-weight: bold; padding: 10px 18px; border-radius: 20px; text-decoration: none; font-size: 14px;">
+                    📊 Ver Mi Informe Fisiológico →
+                </a>
+            </div>
+        `;
     } catch (err) {
-        console.error("Error al sincronizar con Supabase: ", err);
-        cloudStatus.innerText = "⚠ Guardado localmente, error de red al sincronizar.";
+        console.error("Error al guardar:", err);
+        cloudStatus.innerText = "⚠ Error al conectar con Supabase. Revisa tu conexión.";
         cloudStatus.style.color = "#dc3545";
     }
 }
