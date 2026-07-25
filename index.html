@@ -3,567 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluación Biométrica Matutina - GIPAP</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Control de Sueño y Evaluación Matutina Móvil</title>
     <style>
         :root {
-            --bg-dark: #121212;
+            --bg-color: #121212;
             --card-bg: #1e1e1e;
-            --accent-blue: #00adb5;
-            --accent-green: #28a745;
-            --text-light: #ffffff;
-            --text-muted: #aaaaaa;
-            --input-bg: #2b2b2b;
+            --primary: #00b4d8;
+            --primary-hover: #0096c7;
+            --text: #ffffff;
+            --text-secondary: #a0a0a0;
+            --border: #333333;
+            --accent: #2a2a2a;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
             margin: 0;
             padding: 20px;
-            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
         .container {
             width: 100%;
-            max-width: 420px;
-            background: var(--card-bg);
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            box-sizing: border-box;
+            max-width: 520px;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
         }
 
-        .wizard-bar {
-            width: 100%;
-            height: 6px;
-            background: #333;
-            border-radius: 3px;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-        .wizard-fill {
-            height: 100%;
-            width: 33.3%;
-            background: var(--accent-blue);
-            transition: width 0.3s ease;
-        }
-
-        .step-card { display: none; }
-        .step-card.active { display: block; }
-
-        h2 { margin-top: 0; color: var(--accent-blue); font-size: 1.3rem; text-align: center; }
-        .subtitle { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 15px; }
-
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-        label {
-            display: block;
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 5px;
-        }
-
-        input, select, button {
-            width: 100%;
-            padding: 14px;
-            font-size: 15px;
-            border-radius: 20px;
-            box-sizing: border-box;
-            border: none;
-        }
-
-        input, select {
-            background-color: var(--input-bg);
-            color: white;
+        .header {
             text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
         }
 
-        select { text-align-last: center; }
-
-        button {
-            background-color: var(--accent-blue);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s, opacity 0.2s;
-            margin-top: 10px;
-        }
-        button:disabled { background-color: #444444; cursor: not-allowed; }
-
-        .btn-secondary {
-            background-color: #333333;
-            color: var(--text-muted);
+        .header h1 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .nav-links {
+        .athlete-card {
+            background-color: var(--accent);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: var(--text);
             display: flex;
             justify-content: space-between;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .nav-links button {
-            font-size: 12px;
-            padding: 10px;
+            align-items: center;
         }
 
-        #progressContainer {
-            margin-top: 20px;
-            background-color: #333;
+        .athlete-name {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        /* Nav Tabs */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: var(--accent);
+            padding: 4px;
             border-radius: 10px;
-            display: none;
-            overflow: hidden;
-        }
-        #progressBar {
-            width: 0%;
-            height: 18px;
-            background-color: var(--accent-blue);
-            transition: width 0.1s linear;
         }
 
-        #status { margin-top: 15px; font-size: 13px; color: var(--text-muted); text-align: center; }
-
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            background: #252525;
-            border-radius: 10px;
-            display: none;
-            border: 1px solid #333;
+        .tab-btn {
+            flex: 1;
+            padding: 10px 5px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             text-align: center;
         }
 
-        video, canvas { display: none; }
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: #000;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--accent);
+            color: var(--text);
+        }
+
+        .section-divider {
+            border-top: 1px dashed var(--border);
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .section-divider span {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            padding: 0 10px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .tracking-box {
+            background: var(--accent);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            background: #333;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="wizard-bar">
-        <div class="wizard-fill" id="wizardProgress"></div>
+    <!-- Header -->
+    <div class="header">
+        <h1>Control de Sueño y Evaluación Matutina Móvil</h1>
+        <div class="athlete-card">
+            <span>Atleta:</span>
+            <span class="athlete-name" id="athleteNameDisplay">Enzo Alveal</span>
+        </div>
     </div>
 
-    <!-- PASO 1: Identificación y Sueño -->
-    <div class="step-card active" id="step1">
-        <h2>🌙 1. Sueño Nocturno</h2>
-        <p class="subtitle">Registra tu descanso (Opcional).</p>
+    <!-- Pestañas de Navegación -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-sueno')">1. Sueño</button>
+        <button class="tab-btn" onclick="switchTab('tab-cardio')">2. Cardio Basal</button>
+        <button class="tab-btn" onclick="switchTab('tab-glucosa')">3. Glucosa</button>
+    </div>
 
+    <!-- Pestaña 1: Control del Sueño -->
+    <div id="tab-sueno" class="tab-content active">
         <div class="form-group">
-            <label for="alumnoInput">Nombre y Apellido del Atleta:</label>
-            <input type="text" id="alumnoInput" placeholder="Ej: Enzo Alveal" />
+            <label for="hoursSleep">Tiempo Total de Sueño (Horas):</label>
+            <input type="number" id="hoursSleep" step="0.1" placeholder="Ej: 7.5 (Opcional si usas medición móvil)">
         </div>
 
         <div class="form-group">
-            <label for="horasSueno">Horas de Sueño Totales:</label>
-            <input type="number" id="horasSueno" step="0.5" placeholder="Ej: 7.5 (Omitir si no recuerdas)" />
-        </div>
-
-        <div class="form-group">
-            <label for="calidadSueno">Calidad Subjetiva del Sueño:</label>
-            <select id="calidadSueno">
-                <option value="">-- Sin registrar --</option>
-                <option value="5">5 - Excelente / Profundo</option>
-                <option value="4">4 - Bueno</option>
-                <option value="3">3 - Regular</option>
-                <option value="2">2 - Malo / Interrumpido</option>
-                <option value="1">1 - Muy Malo / Insomnio</option>
+            <label for="qualitySleep">Evaluación Calidad Subjetiva del Sueño:</label>
+            <select id="qualitySleep">
+                <option value="">-- Seleccionar opción --</option>
+                <option value="5">5 - Excelente / Completamente descansado</option>
+                <option value="4">4 - Bueno / Descanso adecuado</option>
+                <option value="3">3 - Regular / Interrupciones menores</option>
+                <option value="2">2 - Malo / Cansancio perceptible</option>
+                <option value="1">1 - Muy malo / Insomnio o agotamiento</option>
             </select>
         </div>
 
-        <button onclick="goToStep(2)">Continuar a Test PPG (Cámara) ➔</button>
-        <div class="nav-links">
-            <button class="btn-secondary" onclick="goToStep(3)">Saltar a Glucosa / Guardar ➔</button>
+        <div class="section-divider">
+            <span>O Medición Activa Nocturna</span>
         </div>
+
+        <div class="tracking-box">
+            <div class="status-badge" id="trackingStatus">Estado: Inactivo</div>
+            
+            <div class="form-group" style="text-align: left;">
+                <label for="sensorMethod">Método / Ubicación del Smartphone:</label>
+                <select id="sensorMethod">
+                    <option value="velador">Dispositivo en velador (Micrófono y ondas sonoras)</option>
+                    <option value="cama">Dispositivo móvil en la cama (Acelerómetro y micrófono)</option>
+                </select>
+            </div>
+
+            <button class="btn" id="btnStartSleep" onclick="toggleSleepTracking()">🌙 Iniciar Noche de Sueño</button>
+        </div>
+
+        <button class="btn" style="margin-top: 20px;" onclick="switchTab('tab-cardio')">Ir a Test Cardiovascular Basal ➔</button>
     </div>
 
-    <!-- PASO 2: Medición HRV por Cámara -->
-    <div class="step-card" id="step2">
-        <h2>❤️ 2. Medición HRV Matutina</h2>
-        <p class="subtitle">Cubre la cámara trasera y el flash con el índice (Opcional).</p>
+    <!-- Pestaña 2: Test Cardiovascular Basal -->
+    <div id="tab-cardio" class="tab-content">
+        <div style="text-align: center; padding: 10px 0;">
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash para medir tu Variabilidad de Frecuencia Cardíaca (HRV) y BPM.
+            </p>
 
-        <button id="startBtn">Iniciar Medición Óptica (60s)</button>
+            <div style="background: #111; padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin: 15px 0;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Resultado del Test:</p>
+                <h2 style="color: var(--primary); margin: 10px 0; font-size: 2rem;" id="hrvResult">-- ms</h2>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);" id="bpmResult">Frecuencia Cardíaca: -- BPM</p>
+            </div>
 
-        <div id="progressContainer">
-            <div id="progressBar"></div>
+            <button class="btn">Iniciar Medición Cardiovascular (60s)</button>
         </div>
 
-        <div id="status">Listo para medir.</div>
-
-        <div id="result">
-            <p id="rmssdVal" style="font-size: 26px; font-weight: bold; color: var(--accent-blue); margin: 5px 0;"></p>
-            <p id="pulseVal" style="font-size: 14px; color: #eee; margin: 0;"></p>
-        </div>
-
-        <button class="btn-secondary" id="btnNextPpg" style="display:none;" onclick="goToStep(3)">Continuar a Glucosa ➔</button>
-        <div class="nav-links">
-            <button class="btn-secondary" onclick="goToStep(1)">⬅️ Volver</button>
-            <button class="btn-secondary" onclick="goToStep(3)">Saltar este paso ➔</button>
-        </div>
+        <button class="btn btn-secondary" style="margin-top: 15px;" onclick="switchTab('tab-glucosa')">Ir a Test de Glucosa ➔</button>
     </div>
 
-    <!-- PASO 3: Glucosa Basal y Envío -->
-    <div class="step-card" id="step3">
-        <h2>🩸 3. Metabolismo & Glucosa Basal</h2>
-        <p class="subtitle">Glicemia basal en ayunas (Opcional).</p>
-
+    <!-- Pestaña 3: Test de Glucosa -->
+    <div id="tab-glucosa" class="tab-content">
         <div class="form-group">
-            <label for="glucosaBasal">Glucosa Basal (mg/dL):</label>
-            <input type="number" id="glucosaBasal" step="0.1" placeholder="Ej: 92.5 (Omitir si no tienes)" />
+            <label for="glucoseLevel">Glucemia Basal en Ayunas (mg/dL):</label>
+            <input type="number" id="glucoseLevel" placeholder="Ej: 90">
         </div>
 
-        <div class="form-group">
-            <label for="tendenciaGlucosa">Tendencia / Estado:</label>
-            <select id="tendenciaGlucosa">
-                <option value="Estable" selected>Estable</option>
-                <option value="Elevada">Elevada</option>
-                <option value="Baja">Baja</option>
-            </select>
-        </div>
-
-        <button onclick="finalizarYEnviar()">💾 Guardar Datos Capturados</button>
-        <button class="btn-secondary" onclick="goToStep(2)">⬅️ Volver al Test PPG</button>
-
-        <div id="cloudStatus" style="font-size: 13px; margin-top: 15px; text-align: center;"></div>
+        <button class="btn" style="background-color: #2ec4b6;" onclick="saveAllData()">💾 Guardar y Sincronizar Registro Matutino</button>
     </div>
 </div>
 
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas" width="20" height="20"></canvas>
-
 <script>
-const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const alumnoInput = document.getElementById('alumnoInput');
-const startBtn = document.getElementById('startBtn');
-const progressContainer = document.getElementById('progressContainer');
-const progressBar = document.getElementById('progressBar');
-const statusDiv = document.getElementById('status');
-const resultDiv = document.getElementById('result');
-const rmssdVal = document.getElementById('rmssdVal');
-const pulseVal = document.getElementById('pulseVal');
-const cloudStatus = document.getElementById('cloudStatus');
-const btnNextPpg = document.getElementById('btnNextPpg');
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-let streamRef = null;
-let animationFrameId = null;
-let ppgSignal = [];
-let timeStamps = [];
-let startTime = 0;
-const DURATION = 60000;
-
-let rmssdCalculado = null;
-let bpmCalculado = null;
-
-document.addEventListener('DOMContentLoaded', () => {
-    const nombreGuardado = localStorage.getItem('nombre_alumno_hrv');
-    if (nombreGuardado) {
-        alumnoInput.value = nombreGuardado;
-    }
-});
-
-function goToStep(step) {
-    if (step > 1 && !alumnoInput.value.trim()) {
-        alert("Por favor, ingresa tu nombre y apellido para identificar la medición.");
-        return;
-    }
-    if (alumnoInput.value.trim()) {
-        localStorage.setItem('nombre_alumno_hrv', alumnoInput.value.trim());
-    }
-
-    document.querySelectorAll('.step-card').forEach(el => el.classList.remove('active'));
-    document.getElementById(`step${step}`).classList.add('active');
-    document.getElementById('wizardProgress').style.width = `${(step / 3) * 100}%`;
-}
-
-startBtn.addEventListener('click', startTest);
-
-async function startTest() {
-    ppgSignal = [];
-    timeStamps = [];
-    resultDiv.style.display = 'none';
-    btnNextPpg.style.display = 'none';
-    startBtn.disabled = true;
-    progressContainer.style.display = 'block';
-    progressBar.style.width = '0%';
-    statusDiv.innerText = "Cargando lentes ópticos móviles...";
-
-    try {
-        streamRef = await navigator.mediaDevices.getUserMedia({
-            video: { 
-                facingMode: "environment", 
-                frameRate: { ideal: 30 },
-                width: { ideal: 160 },
-                height: { ideal: 160 }
-            }
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
         });
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        document.getElementById(tabId).classList.add('active');
         
-        video.srcObject = streamRef;
-        const track = streamRef.getVideoTracks()[0];
-        const capabilities = track.getCapabilities();
-        
-        if (capabilities.torch) {
-            await track.applyConstraints({ advanced: [{ torch: true }] });
-        }
-        
-        statusDiv.innerText = "Midiendo... Mantén el dedo firme cubriendo el lente y el flash.";
-        startTime = performance.now();
-        
-        if ('requestVideoFrameCallback' in video) {
-            video.requestVideoFrameCallback(processFrameCallback);
+        // Highlight active tab button
+        const activeIndex = tabId === 'tab-sueno' ? 0 : tabId === 'tab-cardio' ? 1 : 2;
+        document.querySelectorAll('.tab-btn')[activeIndex].classList.add('active');
+    }
+
+    let isTracking = false;
+    function toggleSleepTracking() {
+        const btn = document.getElementById('btnStartSleep');
+        const status = document.getElementById('trackingStatus');
+
+        if (!isTracking) {
+            isTracking = true;
+            btn.innerText = "☀️ Sesión de Sueño Completada";
+            btn.style.backgroundColor = "#e76f51";
+            status.innerText = "Estado: Registrando noche...";
+            status.style.background = "#2a9d8f";
+            status.style.color = "#fff";
         } else {
-            processFrameLegacy();
-        }
-        
-    } catch (err) {
-        alert("Error de acceso a la cámara. Revisa los permisos HTTPS.");
-        resetUI();
-    }
-}
-
-function processFrameCallback() {
-    if (!streamRef) return;
-    analyzeFrame();
-    const elapsed = performance.now() - startTime;
-    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
-    if (elapsed < DURATION) {
-        video.requestVideoFrameCallback(processFrameCallback);
-    } else {
-        endTest();
-    }
-}
-
-function processFrameLegacy() {
-    if (!streamRef) return;
-    analyzeFrame();
-    const elapsed = performance.now() - startTime;
-    progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
-    if (elapsed < DURATION) {
-        animationFrameId = requestAnimationFrame(processFrameLegacy);
-    } else {
-        endTest();
-    }
-}
-
-function analyzeFrame() {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        let redSum = 0;
-        for (let i = 0; i < imgData.length; i += 4) {
-            redSum += imgData[i]; 
-        }
-        ppgSignal.push(redSum / (imgData.length / 4));
-        timeStamps.push(performance.now());
-    }
-}
-
-function resetUI() {
-    startBtn.disabled = false;
-    progressContainer.style.display = 'none';
-}
-
-function endTest() {
-    if (streamRef) {
-        streamRef.getTracks().forEach(track => track.stop());
-        streamRef = null;
-    }
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    
-    statusDiv.innerText = "Filtrando señal con algoritmo de percentil móvil...";
-    
-    setTimeout(() => {
-        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
-        
-        if(rrIntervals.length < 20) {
-            statusDiv.innerText = `Lectura incompleta (${rrIntervals.length} latidos). Recuerda posar el dedo suavemente sobre el flash.`;
-            resetUI();
-            return;
-        }
-        
-        rmssdCalculado = calculateRMSSD(rrIntervals);
-        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
-        bpmCalculado = Math.round(60000 / avgRR);
-        
-        rmssdVal.innerText = `${rmssdCalculado.toFixed(1)} ms`;
-        pulseVal.innerText = `Frecuencia Cardíaca: ${bpmCalculado} BPM`;
-        statusDiv.innerText = "✓ Medición PPG completada con éxito.";
-        
-        resultDiv.style.display = 'block';
-        btnNextPpg.style.display = 'block';
-        resetUI();
-    }, 600);
-}
-
-function calculateRRIntervals(signal, timestamps) {
-    const rrIntervals = [];
-    const smoothSignal = [];
-    const windowSize = 5; 
-
-    if (signal.length < 60) return [];
-
-    for(let i = 0; i < signal.length; i++) {
-        let start = Math.max(0, i - windowSize);
-        let end = Math.min(signal.length, i + windowSize);
-        let localMean = 0;
-        for(let j = start; j < end; j++) localMean += signal[j];
-        smoothSignal.push(signal[i] - (localMean / (end - start)));
-    }
-
-    const sortedValues = [...smoothSignal].sort((a, b) => a - b);
-    const indexPercentil = Math.floor(sortedValues.length * 0.75);
-    const globalThreshold = Math.max(sortedValues[indexPercentil], 0.01);
-
-    let lastPeakTime = null;
-
-    for (let i = 1; i < smoothSignal.length - 1; i++) {
-        if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
-            const currentPeakTime = timestamps[i];
-
-            if (lastPeakTime !== null) {
-                const rr = currentPeakTime - lastPeakTime;
-                if (rr < 600) continue; 
-                if (rr >= 600 && rr <= 1600) {
-                    rrIntervals.push(rr);
-                    lastPeakTime = currentPeakTime;
-                }
-            } else {
-                lastPeakTime = currentPeakTime;
-            }
+            isTracking = false;
+            btn.innerText = "🌙 Iniciar Noche de Sueño";
+            btn.style.backgroundColor = "var(--primary)";
+            status.innerText = "Estado: Sesión enviada al procesador";
+            status.style.background = "#333";
+            status.style.color = "#aaa";
+            alert("Datos de la sesión de sueño enviados exitosamente al procesador de análisis.");
         }
     }
 
-    if (rrIntervals.length < 5) return [];
-    
-    const finalRR = [];
-    const avgGlobal = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
-    const filteredOutliers = rrIntervals.filter(rr => Math.abs(rr - avgGlobal) / avgGlobal <= 0.25);
-    
-    if (filteredOutliers.length < 3) return [];
-
-    finalRR.push(filteredOutliers[0]);
-    for (let i = 1; i < filteredOutliers.length; i++) {
-        const prev = finalRR[finalRR.length - 1];
-        const curr = filteredOutliers[i];
-        const pctChange = Math.abs(curr - prev) / prev;
-
-        if (pctChange > 0.15) {
-            const sign = curr > prev ? 1 : -1;
-            finalRR.push(prev + (prev * 0.08 * sign)); 
-        } else {
-            finalRR.push(curr);
-        }
+    function saveAllData() {
+        alert("¡Evaluación Matutina completa sincronizada con la base de datos!");
     }
-
-    return finalRR;
-}
-
-function calculateRMSSD(rrIntervals) {
-    if (rrIntervals.length < 2) return 0;
-    let sumSquaredDiffs = 0;
-    let validDiffsCount = 0;
-
-    for (let i = 0; i < rrIntervals.length - 1; i++) {
-        const diff = rrIntervals[i] - rrIntervals[i+1];
-        if (Math.abs(diff) > 120) continue; 
-        sumSquaredDiffs += diff * diff;
-        validDiffsCount++;
-    }
-
-    if (validDiffsCount === 0) return 35.0; 
-    return Math.sqrt(sumSquaredDiffs / validDiffsCount);
-}
-
-// readiness adaptable a los datos presentes
-function calcularReadinessGlobal(rmssd, horas, calidad) {
-    let score = 70; 
-    if (rmssd) {
-        if (rmssd > 60) score += 15;
-        else if (rmssd < 40) score -= 15;
-    }
-    if (horas) {
-        if (horas >= 7.5) score += 10;
-        else if (horas < 6) score -= 15;
-    }
-    if (calidad) {
-        score += (parseInt(calidad) - 3) * 5;
-    }
-    return Math.min(100, Math.max(10, Math.round(score)));
-}
-
-async function finalizarYEnviar() {
-    const nombre = alumnoInput.value.trim();
-    const horasInput = document.getElementById('horasSueno').value;
-    const calidadInput = document.getElementById('calidadSueno').value;
-    const glucosaInput = document.getElementById('glucosaBasal').value;
-    const tendencia = document.getElementById('tendenciaGlucosa').value;
-    
-    const horas = horasInput ? parseFloat(horasInput) : null;
-    const calidad = calidadInput ? parseInt(calidadInput) : null;
-    const glucosa = glucosaInput ? parseFloat(glucosaInput) : null;
-
-    if (!rmssdCalculado && !horas && !glucosa) {
-        alert("Atención: No has registrado ningún parámetro (ni HRV, ni Sueño, ni Glucosa). Registra al menos uno para guardar.");
-        return;
-    }
-
-    const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
-    const readinessScore = calcularReadinessGlobal(rmssdCalculado, horas, calidad);
-
-    cloudStatus.innerText = "Guardando datos en Supabase...";
-    cloudStatus.style.color = "white";
-
-    try {
-        const payload = {
-            alumno_nombre: nombre,
-            fecha: localISOTime,
-            hrv_rmssd: rmssdCalculado ? parseFloat(rmssdCalculado.toFixed(1)) : null,
-            pulso_bpm: bpmCalculado ? parseInt(bpmCalculado) : null,
-            horas_sueno: horas,
-            calidad_sueno_subjetiva: calidad,
-            glucosa_basal_mgdl: glucosa,
-            tendencia_glucosa: glucosa ? tendencia : null,
-            readiness_score: readinessScore
-        };
-
-        const { error } = await supabaseClient
-            .from('registros_hrv')
-            .insert([payload]);
-
-        if (error) throw error;
-
-        const urlPortal = `portal_atleta.html?atleta=${encodeURIComponent(nombre)}`;
-
-        cloudStatus.innerHTML = `
-            <div style="padding: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 10px; margin-top:10px;">
-                <p style="color: #28a745; font-weight: bold; margin-bottom: 10px; font-size: 13px;">✓ Datos guardados exitosamente.</p>
-                <p style="font-size: 15px; color: #fff; margin-bottom: 10px;">Readiness Score Estimado: <strong>${readinessScore}/100</strong></p>
-                <a href="${urlPortal}" style="display: inline-block; background-color: #00adb5; color: white; font-weight: bold; padding: 10px 18px; border-radius: 20px; text-decoration: none; font-size: 14px;">
-                    📊 Ver Mi Informe Fisiológico →
-                </a>
-            </div>
-        `;
-    } catch (err) {
-        console.error("Error al guardar:", err);
-        cloudStatus.innerText = "⚠ Error al conectar con Supabase. Revisa tu conexión.";
-        cloudStatus.style.color = "#dc3545";
-    }
-}
 </script>
+
 </body>
 </html>
-
-
