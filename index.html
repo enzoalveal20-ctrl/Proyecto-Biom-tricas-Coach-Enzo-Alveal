@@ -14,10 +14,11 @@
             --text-secondary: #a0a0a0;
             --border: #333333;
             --accent: #2a2a2a;
+            --highlight: #28a745;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text);
             margin: 0;
@@ -36,6 +37,7 @@
             padding: 24px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border: 1px solid var(--border);
+            box-sizing: border-box;
         }
 
         .header {
@@ -46,27 +48,24 @@
         }
 
         .header h1 {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             color: var(--primary);
-            margin: 0 0 10px 0;
+            margin: 0 0 12px 0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .athlete-card {
+        .user-card {
             background-color: var(--accent);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            color: var(--text);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .athlete-name {
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--border);
         }
 
         /* Nav Tabs */
@@ -81,11 +80,11 @@
 
         .tab-btn {
             flex: 1;
-            padding: 10px 5px;
+            padding: 12px 5px;
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 600;
             border-radius: 8px;
             cursor: pointer;
@@ -109,6 +108,7 @@
         /* Form elements */
         .form-group {
             margin-bottom: 16px;
+            text-align: left;
         }
 
         label {
@@ -158,9 +158,41 @@
             color: var(--text);
         }
 
+        /* Bloque principal Medición Nocturna */
+        .hero-tracking-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 2px solid var(--primary);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.15);
+        }
+
+        .hero-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            background: #333;
+            color: #aaa;
+            margin-bottom: 15px;
+        }
+
         .section-divider {
             border-top: 1px dashed var(--border);
-            margin: 20px 0;
+            margin: 25px 0 20px 0;
             position: relative;
         }
 
@@ -175,34 +207,43 @@
             color: var(--text-secondary);
         }
 
-        .tracking-box {
-            background: var(--accent);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+        /* Grid para BPM y HRV */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .metric-card {
+            background: #111111;
             padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
             text-align: center;
         }
 
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            background: #333;
-            color: #aaa;
-            margin-bottom: 10px;
+        .metric-value {
+            color: var(--primary);
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 8px 0 4px 0;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Header -->
+    <!-- Header General -->
     <div class="header">
         <h1>Control de Sueño y Evaluación Matutina Móvil</h1>
-        <div class="athlete-card">
-            <span>Atleta:</span>
-            <span class="athlete-name" id="athleteNameDisplay">Enzo Alveal</span>
+        <div class="user-card">
+            <span id="userNameDisplay">Enzo Alveal</span>
         </div>
     </div>
 
@@ -213,11 +254,37 @@
         <button class="tab-btn" onclick="switchTab('tab-glucosa')">3. Glucosa</button>
     </div>
 
-    <!-- Pestaña 1: Control del Sueño -->
+    <!-- PESTAÑA 1: CONTROL DEL SUEÑO -->
     <div id="tab-sueno" class="tab-content active">
+        
+        <!-- Bloque Principal de Medición Activa -->
+        <div class="hero-tracking-box">
+            <div class="hero-title">
+                <span>🌙</span> MEDICIÓN NOCTURNA DE SUEÑO
+            </div>
+            
+            <div class="status-badge" id="trackingStatus">Estado: Inactivo</div>
+            
+<div class="form-group">
+    <label for="sensorMethod" style="color: #cbd5e1;">Ubicación del Dispositivo:</label>
+    <select id="sensorMethod">
+        <option value="velador">Dispositivo en Velador</option>
+        <option value="cama">Dispositivo en Cama</option>
+    </select>
+</div>
+
+            <button class="btn" id="btnStartSleep" onclick="toggleSleepTracking()">🌙 Iniciar Noche de Sueño</button>
+        </div>
+
+        <!-- Separador -->
+        <div class="section-divider">
+            <span>O Registro Manual Complementario</span>
+        </div>
+
+        <!-- Bloque Opcional / Manual -->
         <div class="form-group">
             <label for="hoursSleep">Tiempo Total de Sueño (Horas):</label>
-            <input type="number" id="hoursSleep" step="0.1" placeholder="Ej: 7.5 (Opcional si usas medición móvil)">
+            <input type="number" id="hoursSleep" step="0.1" placeholder="Ej: 7.5 (Opcional si realizaste medición activa)">
         </div>
 
         <div class="form-group">
@@ -232,38 +299,28 @@
             </select>
         </div>
 
-        <div class="section-divider">
-            <span>O Medición Activa Nocturna</span>
-        </div>
-
-        <div class="tracking-box">
-            <div class="status-badge" id="trackingStatus">Estado: Inactivo</div>
-            
-            <div class="form-group" style="text-align: left;">
-                <label for="sensorMethod">Método / Ubicación del Smartphone:</label>
-                <select id="sensorMethod">
-                    <option value="velador">Dispositivo en velador (Micrófono y ondas sonoras)</option>
-                    <option value="cama">Dispositivo móvil en la cama (Acelerómetro y micrófono)</option>
-                </select>
-            </div>
-
-            <button class="btn" id="btnStartSleep" onclick="toggleSleepTracking()">🌙 Iniciar Noche de Sueño</button>
-        </div>
-
-        <button class="btn" style="margin-top: 20px;" onclick="switchTab('tab-cardio')">Ir a Test Cardiovascular Basal ➔</button>
+        <button class="btn" style="margin-top: 15px;" onclick="switchTab('tab-cardio')">Ir a Test Cardiovascular Basal ➔</button>
     </div>
 
-    <!-- Pestaña 2: Test Cardiovascular Basal -->
+    <!-- PESTAÑA 2: TEST CARDIOVASCULAR BASAL -->
     <div id="tab-cardio" class="tab-content">
         <div style="text-align: center; padding: 10px 0;">
             <p style="font-size: 0.9rem; color: var(--text-secondary);">
-                Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash para medir tu Variabilidad de Frecuencia Cardíaca (HRV) y BPM.
+                Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash para iniciar el chequeo.
             </p>
 
-            <div style="background: #111; padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin: 15px 0;">
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Resultado del Test:</p>
-                <h2 style="color: var(--primary); margin: 10px 0; font-size: 2rem;" id="hrvResult">-- ms</h2>
-                <p style="font-size: 0.85rem; color: var(--text-secondary);" id="bpmResult">Frecuencia Cardíaca: -- BPM</p>
+            <!-- Tarjetas Paralelas para HRV y BPM -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">HRV (rMSSD)</div>
+                    <div class="metric-value" id="hrvResult">-- <span style="font-size: 1rem;">ms</span></div>
+                    <div class="metric-label">Variabilidad Cardíaca</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Frecuencia (BPM)</div>
+                    <div class="metric-value" id="bpmResult" style="color: #2ec4b6;">--</div>
+                    <div class="metric-label">Latidos por Minuto</div>
+                </div>
             </div>
 
             <button class="btn">Iniciar Medición Cardiovascular (60s)</button>
@@ -272,14 +329,14 @@
         <button class="btn btn-secondary" style="margin-top: 15px;" onclick="switchTab('tab-glucosa')">Ir a Test de Glucosa ➔</button>
     </div>
 
-    <!-- Pestaña 3: Test de Glucosa -->
+    <!-- PESTAÑA 3: TEST DE GLUCOSA -->
     <div id="tab-glucosa" class="tab-content">
         <div class="form-group">
             <label for="glucoseLevel">Glucemia Basal en Ayunas (mg/dL):</label>
             <input type="number" id="glucoseLevel" placeholder="Ej: 90">
         </div>
 
-        <button class="btn" style="background-color: #2ec4b6;" onclick="saveAllData()">💾 Guardar y Sincronizar Registro Matutino</button>
+        <button class="btn" style="background-color: #2ec4b6;" onclick="saveAllData()">💾 Guardar y Sincronizar Chequeo Matutino</button>
     </div>
 </div>
 
@@ -294,7 +351,6 @@
 
         document.getElementById(tabId).classList.add('active');
         
-        // Highlight active tab button
         const activeIndex = tabId === 'tab-sueno' ? 0 : tabId === 'tab-cardio' ? 1 : 2;
         document.querySelectorAll('.tab-btn')[activeIndex].classList.add('active');
     }
@@ -309,7 +365,7 @@
             btn.innerText = "☀️ Sesión de Sueño Completada";
             btn.style.backgroundColor = "#e76f51";
             status.innerText = "Estado: Registrando noche...";
-            status.style.background = "#2a9d8f";
+            status.style.background = "#28a745";
             status.style.color = "#fff";
         } else {
             isTracking = false;
@@ -323,7 +379,7 @@
     }
 
     function saveAllData() {
-        alert("¡Evaluación Matutina completa sincronizada con la base de datos!");
+        alert("¡Chequeo Matutino completo sincronizado con la base de datos!");
     }
 </script>
 
