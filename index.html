@@ -400,7 +400,7 @@
         }
     }
 
-    // MOTOR PPG (CÁMARA, BPM & HRV)
+    // MOTOR PPG MULTI-DISPOSITIVO (PC / LAPTOP / MÓVIL)
     let mediaStream = null;
     let testTimer = null;
     let progressInterval = null;
@@ -419,14 +419,16 @@
         const canvas = document.getElementById('ppgCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Limpiar métricas anteriores
+        document.getElementById('hrvVal').innerHTML = `-- <span style="font-size: 1rem;">ms</span>`;
+        document.getElementById('bpmVal').innerText = `--`;
+
         try {
-            statusText.innerText = "Solicitando acceso a la cámara y flash...";
-            
-            // Solicitar cámara trasera con linterna encendida
+            statusText.innerText = "Iniciando cámara y sensor óptico...";
+
+            // Solicitar cualquier cámara disponible (compatible con PC o Smartphone)
             mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: { exact: "environment" },
-                    torch: true,
                     width: { ideal: 300 },
                     height: { ideal: 300 }
                 }
@@ -435,11 +437,10 @@
             video.srcObject = mediaStream;
             await video.play();
 
-            // Intentar encender la antorcha/flash
+            // Intentar encender la antorcha/flash si estamos en un smartphone
             const track = mediaStream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-            if (capabilities.torch) {
-                await track.applyConstraints({ advanced: [{ torch: true }] });
+            if (track.getCapabilities && track.getCapabilities().torch) {
+                await track.applyConstraints({ advanced: [{ torch: true }] }).catch(() => {});
             }
 
             isMeasuring = true;
@@ -447,22 +448,21 @@
             btn.style.opacity = "0.5";
             pBarContainer.style.display = "block";
             pBar.style.width = "0%";
-            statusText.innerText = "Cubra la cámara con el dedo firmemente...";
+            statusText.innerText = "Cubre la cámara firmemente con el dedo...";
 
             redSignalBuffer = [];
             timeBuffer = [];
 
             let elapsedSeconds = 0;
-            const totalDuration = 60; // 60 segundos
+            const totalDuration = 60; // 60 segundos completos
 
-            // Bucle de lectura de frames (PPG)
+            // Captura frame a frame de la señal pulsátil
             const processFrame = () => {
                 if (!isMeasuring) return;
 
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
                 
-                // Calcular promedio del canal rojo
                 let redSum = 0;
                 for (let i = 0; i < frameData.length; i += 4) {
                     redSum += frameData[i];
@@ -477,14 +477,14 @@
 
             requestAnimationFrame(processFrame);
 
-            // Temporizador de 60s y barra de progreso
+            // Contador y actualización de la barra de progreso
             progressInterval = setInterval(() => {
                 elapsedSeconds += 0.2;
                 const percent = Math.min((elapsedSeconds / totalDuration) * 100, 100);
                 pBar.style.width = percent + "%";
 
-                if (elapsedSeconds >= 5 && elapsedSeconds < totalDuration) {
-                    statusText.innerText = `Midiendo señal pulse-wave... (${Math.round(totalDuration - elapsedSeconds)}s)`;
+                if (elapsedSeconds >= 2) {
+                    statusText.innerText = `Midiendo pulso... Tiempo restante: ${Math.round(totalDuration - elapsedSeconds)}s`;
                 }
             }, 200);
 
@@ -495,8 +495,10 @@
 
         } catch (err) {
             console.error("Error al acceder a la cámara:", err);
-            // Fallback si la cámara no tiene permiso o falla en la PC (simulación de datos)
-            simulateCardioMeasurement();
+            statusText.innerText = "⚠️ No se pudo acceder a la cámara. Revisa los permisos de tu navegador.";
+            pBarContainer.style.display = "none";
+            btn.disabled = false;
+            btn.style.opacity = "1";
         }
     }
 
@@ -510,53 +512,24 @@
         }
 
         document.getElementById('pBarContainer').style.display = "none";
-        document.getElementById('cardioStatusText').innerText = "✓ Medición completada e interpretada.";
 
         const btn = document.getElementById('btnStartCardio');
         btn.disabled = false;
         btn.style.opacity = "1";
 
-        // Algoritmo simplificado de detección de picos para BPM y rMSSD (HRV)
+        // Procesa la señal capturada de los 60s reales
         calculateBiometrics();
     }
 
-    function simulateCardioMeasurement() {
-        const statusText = document.getElementById('cardioStatusText');
-        const pBarContainer = document.getElementById('pBarContainer');
-        const pBar = document.getElementById('pBar');
-        const btn = document.getElementById('btnStartCardio');
-
-        pBarContainer.style.display = "block";
-        btn.disabled = true;
-        btn.style.opacity = "0.5";
-        
-        let prog = 0;
-        statusText.innerText = "Modo simulación / Prueba sin sensor físico activo...";
-
-        const simInterval = setInterval(() => {
-            prog += 5;
-            pBar.style.width = prog + "%";
-            if (prog >= 100) {
-                clearInterval(simInterval);
-                pBarContainer.style.display = "none";
-                btn.disabled = false;
-                btn.style.opacity = "1";
-                statusText.innerText = "✓ Medición completada.";
-
-                // Valores de ejemplo realistas
-                document.getElementById('hrvVal').innerHTML = "65.3 <span style='font-size: 1rem;'>ms</span>";
-                document.getElementById('bpmVal').innerText = "67";
-            }
-        }, 150);
-    }
-
     function calculateBiometrics() {
-        if (redSignalBuffer.length < 100) {
-            simulateCardioMeasurement();
+        const statusText = document.getElementById('cardioStatusText');
+
+        if (redSignalBuffer.length < 200) { 
+            statusText.innerText = "⚠️ No se registraron suficientes datos durante los 60s. Reintenta la prueba.";
             return;
         }
 
-        // Detección simple de picos PPG
+        // Detección de picos en la señal espectral
         let peaks = [];
         for (let i = 1; i < redSignalBuffer.length - 1; i++) {
             if (redSignalBuffer[i] > redSignalBuffer[i - 1] && redSignalBuffer[i] > redSignalBuffer[i + 1]) {
@@ -567,30 +540,32 @@
         let intervals = [];
         for (let i = 1; i < peaks.length; i++) {
             const diff = peaks[i] - peaks[i - 1];
-            if (diff > 400 && diff < 1500) { // Filtro de latidos fisiológicos (40 a 150 BPM)
+            if (diff > 400 && diff < 1500) { // Rango fisiológico entre 40 y 150 BPM
                 intervals.push(diff);
             }
         }
 
-        if (intervals.length < 5) {
-            simulateCardioMeasurement();
+        if (intervals.length < 10) {
+            statusText.innerText = "⚠️ Lectura con mucho ruido. Mantén el dedo firme y vuelve a intentar.";
             return;
         }
 
-        // BPM Promedio
+        // Cálculo de BPM
         const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
         const bpm = Math.round(60000 / avgInterval);
 
-        // rMSSD (HRV)
+        // Cálculo de HRV (rMSSD)
         let sumSquaredDiffs = 0;
         for (let i = 1; i < intervals.length; i++) {
             const diff = intervals[i] - intervals[i - 1];
             sumSquaredDiffs += diff * diff;
         }
-        const rmssd = Math.round(Math.sqrt(sumSquaredDiffs / (intervals.length - 1)));
+        const rmssd = (Math.sqrt(sumSquaredDiffs / (intervals.length - 1))).toFixed(1);
 
+        // Actualización en pantalla con datos calculados
         document.getElementById('hrvVal').innerHTML = `${rmssd} <span style="font-size: 1rem;">ms</span>`;
         document.getElementById('bpmVal').innerText = `${bpm}`;
+        statusText.innerText = "✓ Medición de 60 segundos completada e interpretada.";
     }
 
     function saveAllData() {
