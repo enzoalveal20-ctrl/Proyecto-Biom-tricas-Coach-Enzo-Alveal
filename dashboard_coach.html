@@ -14,7 +14,7 @@
         <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
             <div>
                 <h1 class="text-3xl font-bold text-[#00adb5]">Perfil de Atleta 360°</h1>
-                <p class="text-gray-400 text-sm">Monitoreo Fisiológico, Actigrafía de Sueño y Readiness</p>
+                <p class="text-gray-400 text-sm">Monitoreo Fisiológico y Semáforo de Recuperación Basal</p>
             </div>
             <button id="refreshBtn" class="bg-[#00adb5] hover:bg-[#008c94] text-white font-bold py-2 px-6 rounded-lg transition">
                 Actualizar Datos ↻
@@ -23,14 +23,13 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- PANEL IZQUIERDO: Lista de Alumnos -->
             <div class="bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800">
                 <h2 class="text-lg font-bold mb-4 text-[#00adb5] border-b border-gray-700 pb-2">Estado Diario de Alumnos</h2>
                 <div id="loadingText" class="text-gray-500 text-center py-4">Cargando datos desde la nube...</div>
-                <div id="athletesList" class="space-y-3"></div>
+                <div id="athletesList" class="space-y-3">
+                    </div>
             </div>
 
-            <!-- PANEL DERECHO: Métricas y Gráficos -->
             <div class="lg:col-span-2 bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800 flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -38,8 +37,7 @@
                         <span id="selectedAthleteStatus" class="px-3 py-1 rounded-full text-xs font-bold"></span>
                     </div>
 
-                    <!-- Fila 1: Métricas de HRV y Cardio -->
-                    <div class="grid grid-cols-3 gap-4 mb-3">
+                    <div class="grid grid-cols-3 gap-4 mb-6">
                         <div class="bg-[#252525] p-3 rounded-lg text-center">
                             <span class="text-xs text-gray-400 block">Último HRV</span>
                             <span id="metricLatestHrv" class="text-xl font-bold text-[#00adb5]">-</span>
@@ -54,54 +52,30 @@
                         </div>
                     </div>
 
-                    <!-- Fila 2: Métricas de Sueño -->
-                    <div class="grid grid-cols-3 gap-4 mb-6">
-                        <div class="bg-[#252525] p-3 rounded-lg text-center border-t-2 border-indigo-500">
-                            <span class="text-xs text-gray-400 block">Sueño Total / Calidad</span>
-                            <span id="metricSleepHours" class="text-lg font-bold text-indigo-300">-</span>
-                        </div>
-                        <div class="bg-[#252525] p-3 rounded-lg text-center border-t-2 border-emerald-500">
-                            <span class="text-xs text-gray-400 block">Eficiencia de Sueño</span>
-                            <span id="metricSleepEfficiency" class="text-lg font-bold text-emerald-400">-</span>
-                        </div>
-                        <div class="bg-[#252525] p-3 rounded-lg text-center border-t-2 border-purple-500">
-                            <span class="text-xs text-gray-400 block">SWS (Profundo) / REM</span>
-                            <span id="metricSleepSWS" class="text-lg font-bold text-purple-300">-</span>
-                        </div>
+                    <div class="bg-[#252525] p-4 rounded-lg min-h-[300px] flex items-center justify-center">
+                        <canvas id="hrvChart"></canvas>
                     </div>
-
-                    <!-- Gráficos Principales -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div class="md:col-span-2 bg-[#252525] p-4 rounded-lg min-h-[300px] flex items-center justify-center">
-                            <canvas id="hrvChart"></canvas>
-                        </div>
-                      <!-- CORTAR Y REEMPLAZAR ESTE BLOQUE EN dashboard_coach.html -->
-<div class="bg-[#252525] p-4 rounded-lg border border-gray-800 mb-4">
-    <h3 class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Tendencia Autonómica & SWC (RMSSD vs FC)</h3>
-    <div style="position: relative; height: 320px; width: 100%;">
-        <canvas id="hrvChart"></canvas>
-    </div>
-</div>
                 </div>
             </div>
 
         </div>
     </div>
 
+<!-- Reemplaza todo desde la etiqueta <script> en tu archivo actual de GitHub -->
 <script>
-// Credenciales de Supabase
+// 1. Credenciales de Supabase consolidadas
 const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let rawData = [];
 let athletesData = {};
 let hrvChartInstance = null;
-let sleepChartInstance = null;
 let currentSelectedAthlete = ""; 
 
-console.log("🚀 Iniciando Dashboard del Coach...");
+// Ejecución directa inmediata para evitar problemas de sincronización de la página
+console.log("🚀 Iniciando Dashboard...");
 loadDataFromSupabase();
 
 document.getElementById('refreshBtn').addEventListener('click', loadDataFromSupabase);
@@ -113,13 +87,14 @@ async function loadDataFromSupabase() {
     document.getElementById('athletesList').innerHTML = '';
     
     try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await supabase
             .from('registros_hrv')
             .select('*')
             .order('fecha', { ascending: true });
             
         if (error) throw error;
         
+        console.log("✅ Datos recibidos de Supabase:", data);
         rawData = data;
         processAthletesData();
         renderAthletesList();
@@ -141,6 +116,7 @@ function processAthletesData() {
     });
 }
 
+// Renderizado de lista con Semáforo Dinámico Avanzado (Basado en el SWC del grupo o individuo)
 function renderAthletesList() {
     const listContainer = document.getElementById('athletesList');
     listContainer.innerHTML = '';
@@ -157,6 +133,7 @@ function renderAthletesList() {
         const latestRecord = records[records.length - 1];
         const hrvValues = records.map(r => r.hrv_rmssd);
         
+        // Ejecutamos análisis predictivo para el color del borde del atleta
         const analisis = calcularSWCyRegresion(hrvValues);
         
         let borderColor = "border-green-500";
@@ -164,6 +141,7 @@ function renderAthletesList() {
             borderColor = analisis.diagnostico.includes("Aguda") ? "border-red-500" : "border-yellow-500";
         }
 
+        // Formatear fecha corta para la vista previa de la lista
         const fechaCorta = formatearFechaCronologica(latestRecord.fecha);
 
         const itemHtml = `
@@ -181,6 +159,7 @@ function renderAthletesList() {
         listContainer.innerHTML += itemHtml;
     });
 
+    // Mantener al atleta seleccionado tras actualizar o por defecto al primero
     if (athleteNames.length > 0) {
         selectAthlete(currentSelectedAthlete && athletesData[currentSelectedAthlete] ? currentSelectedAthlete : athleteNames[0]);
     }
@@ -192,27 +171,16 @@ function selectAthlete(name) {
     const latestRecord = records[records.length - 1];
     const hrvValues = records.map(r => r.hrv_rmssd);
 
+    // Ejecutar motor matemático estadístico (SWC + Regresión)
     const analisis = calcularSWCyRegresion(hrvValues);
 
-    // Actualizar paneles de HRV y Cardio
+    // Actualizar paneles de texto en el Dashboard
     document.getElementById('selectedAthleteName').innerText = name;
     document.getElementById('metricLatestHrv').innerText = `${latestRecord.hrv_rmssd} ms`;
     document.getElementById('metricAvgHrv').innerText = `${analisis.promedioBasal} ms`;
     document.getElementById('metricPulse').innerText = `${latestRecord.pulso_bpm} BPM`;
 
-    // Actualizar métricas de Sueño
-    const hrs = latestRecord.horas_sueno ? `${latestRecord.horas_sueno}h` : '-';
-    const cal = latestRecord.calidad_sueno_subjetiva ? `(${latestRecord.calidad_sueno_subjetiva}/5)` : '';
-    document.getElementById('metricSleepHours').innerText = `${hrs} ${cal}`;
-
-    const ef = latestRecord.eficiencia_sueno_pct ? `${latestRecord.eficiencia_sueno_pct}%` : '-';
-    document.getElementById('metricSleepEfficiency').innerText = ef;
-
-    const prof = latestRecord.min_profundo || 0;
-    const rem = latestRecord.min_rem || 0;
-    document.getElementById('metricSleepSWS').innerText = (prof || rem) ? `${prof}m / ${rem}m` : '-';
-
-    // Actualizar Badge del Semáforo
+    // Actualizar el Badge del Semáforo de Recuperación Basal con diagnóstico predictivo
     const statusBadge = document.getElementById('selectedAthleteStatus');
     statusBadge.innerText = analisis.diagnostico.toUpperCase();
     
@@ -227,18 +195,20 @@ function selectAthlete(name) {
     }
 
     renderChart(records);
-    renderSleepChart(latestRecord);
 }
 
-// 📈 Gráfico de HRV y Pulso
+// 📈 Mapeo Visual Cronológico con Opción Interactiva de Borrado
 function renderChart(records) {
     const ctx = document.getElementById('hrvChart').getContext('2d');
     
+    // Formateo cronológico para evitar colapsos en el eje X
     const labels = records.map(r => formatearFechaCronologica(r.fecha));
     const hrvValues = records.map(r => r.hrv_rmssd);
     const pulseValues = records.map(r => r.pulso_bpm);
 
-    if (hrvChartInstance) hrvChartInstance.destroy();
+    if (hrvChartInstance) {
+        hrvChartInstance.destroy();
+    }
 
     hrvChartInstance = new Chart(ctx, {
         type: 'line',
@@ -267,6 +237,7 @@ function renderChart(records) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // 🛑 GESTIÓN EXCLUSIVA INTERACTIVA: Doble clic sobre un nodo del gráfico para borrar un test fallido
             onClick: async (e, elements) => {
                 if (elements.length > 0) {
                     const index = elements[0].index;
@@ -312,42 +283,7 @@ function renderChart(records) {
     });
 }
 
-// 🍩 Gráfico de Dona para Fases de Sueño
-function renderSleepChart(record) {
-    const ctx = document.getElementById('sleepChart').getContext('2d');
-    if (sleepChartInstance) sleepChartInstance.destroy();
-
-    const profundo = record.min_profundo || 0;
-    const rem = record.min_rem || 0;
-    const ligero = record.min_ligero || 0;
-    const vigilia = record.min_vigilia || 0;
-
-    const tieneDatos = (profundo + rem + ligero + vigilia) > 0;
-
-    sleepChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: tieneDatos ? ['Profundo (SWS)', 'REM', 'Ligero', 'Vigilia'] : ['Sin Actigrafía'],
-            datasets: [{
-                data: tieneDatos ? [profundo, rem, ligero, vigilia] : [1],
-                backgroundColor: tieneDatos ? ['#1e3a8a', '#8b5cf6', '#3b82f6', '#f59e0b'] : ['#334155'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#ccc', font: { size: 10 } }
-                }
-            }
-        }
-    });
-}
-
-// 🧮 Motor Matemático SWC + Regresión
+// 🧮 MOTOR MATEMÁTICO: SWC (Smallest Worthwhile Change) & Regresión Lineal
 function calcularSWCyRegresion(valoresRMSSD) {
     const total = valoresRMSSD.reduce((acc, v) => acc + v, 0);
     const promedio = total / valoresRMSSD.length;
@@ -361,12 +297,15 @@ function calcularSWCyRegresion(valoresRMSSD) {
         };
     }
 
+    // 1. Desviación Estándar (Varianza Biológica)
     const varianza = valoresRMSSD.reduce((acc, v) => acc + Math.pow(v - promedio, 2), 0) / valoresRMSSD.length;
     const desviacionEstandar = Math.sqrt(varianza);
 
+    // 2. Umbral de Cambio Útil Mínimo (SWC a magnitud 0.5 para control adaptativo de la fatiga)
     const swcThreshold = 0.5 * desviacionEstandar;
     const limiteInferiorSWC = promedio - swcThreshold;
 
+    // 3. Modelo Matemático de Regresión Lineal Simple (Y = mx + b) sobre la línea temporal
     const n = valoresRMSSD.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < n; i++) {
@@ -377,6 +316,7 @@ function calcularSWCyRegresion(valoresRMSSD) {
     }
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
 
+    // 4. Diagnóstico Clínico-Deportivo Automático del Estado Autonómico
     const ultimoHRV = valoresRMSSD[valoresRMSSD.length - 1];
     let estadoAtleta = "RECUPERADO / ADAPTACIÓN ÓPTIMA";
     let proyeccionAlerta = false;
@@ -398,24 +338,28 @@ function calcularSWCyRegresion(valoresRMSSD) {
     };
 }
 
+// 🕒 Formateador Cronológico de Marcas de Tiempo
 function formatearFechaCronologica(fechaStr) {
     try {
         const f = new Date(fechaStr);
-        if (isNaN(f.getTime())) return fechaStr;
+        if (isNaN(f.getTime())) return fechaStr; // Salvaguarda por si el string viene con formato plano alternativo
         return `${f.getDate()}/${f.getMonth() + 1} ${String(f.getHours()).padStart(2, '0')}:${String(f.getMinutes()).padStart(2, '0')}`;
     } catch {
         return fechaStr;
     }
 }
 
+// 🗑️ Función de Eliminación Remota Directa en Supabase
 async function eliminarMedicion(idMedicion) {
     try {
-        const { error } = await supabaseClient
+        const { error } = await supabase
             .from('registros_hrv')
             .delete()
             .eq('id', idMedicion);
 
         if (error) throw error;
+
+        // Recarga de manera reactiva los datos directamente desde la nube para recalcular las tendencias
         await loadDataFromSupabase();
     } catch (err) {
         console.error("Error al eliminar el registro defectuoso:", err.message);
