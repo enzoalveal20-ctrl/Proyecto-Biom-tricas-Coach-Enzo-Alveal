@@ -710,32 +710,42 @@ function toggleSleepTracking() {
         return Math.sqrt(sumSquaredDiffs / validDiffsCount);
     }
 
-    async function enviarDatosSupabase(nombre, rmssd, bpm) {
-        const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-        const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
-        
-        try {
-            const { data, error } = await supabaseClient
-                .from('registros_hrv')
-                .insert([
-                    { 
-                        alumno_nombre: nombre,
-                        hrv_rmssd: parseFloat(rmssd.toFixed(1)),
-                        pulso_bpm: parseInt(bpm),
-                        fecha: localISOTime 
-                    }
-                ]);
-                
-            if (error) throw error;
-            
-            cloudStatus.innerText = "✓ Sincronizado correctamente con Supabase.";
-            cloudStatus.style.color = "#28a745";
-        } catch (err) {
-            console.error("Error al sincronizar con Supabase: ", err);
-            cloudStatus.innerText = "⚠ Guardado localmente, error de red al sincronizar.";
-            cloudStatus.style.color = "#dc3545";
-        }
+async function enviarDatosSupabase(nombre, rmssd, bpm) {
+    const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
+    
+    // Recuperar datos de la sesión de sueño si existen
+    const sesionSueno = window.sesionSuenoTemporal || {};
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('registros_hrv')
+            .insert([
+                { 
+                    alumno_nombre: nombre,
+                    hrv_rmssd: parseFloat(rmssd.toFixed(1)),
+                    pulso_bpm: parseInt(bpm),
+                    fecha: localISOTime,
+                    // --- NUEVOS CAMPOS DE SUEÑO ---
+                    horas_sueno: parseFloat(document.getElementById('hoursSleep')?.value) || null,
+                    calidad_sueno_subjetiva: parseInt(document.getElementById('qualitySleep')?.value) || null,
+                    metodo_sensor: sesionSueno.metodo || (document.getElementById('sensorMethod')?.value || 'cama'),
+                    inicio_sueno: sesionSueno.inicio || null,
+                    fin_sueno: sesionSueno.fin || null,
+                    raw_movimiento: sesionSueno.raw_movimiento || []
+                }
+            ]);
+
+        if (error) throw error;
+
+        cloudStatus.innerText = "✓ Sincronizado correctamente con Supabase.";
+        cloudStatus.style.color = "#28a745";
+    } catch (err) {
+        console.error("Error al sincronizar con Supabase: ", err);
+        cloudStatus.innerText = "⚠️ Guardado localmente, error de red al sincronizar.";
+        cloudStatus.style.color = "#dc3545";
     }
+}
 
     function saveAllData() {
         alert("¡Chequeo Matutino completo sincronizado con la base de datos!");
