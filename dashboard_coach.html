@@ -44,7 +44,7 @@
                 </div>
             </div>
 
-            <!-- Panel Derecho: Gráfica y Métricas del Alumno Seleccionado -->
+            <!-- Panel Derecho: Gráfica y Métricas -->
             <div class="lg:col-span-2 bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800 flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -125,7 +125,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
                         <h2 id="suenoAthleteName" class="text-xl font-bold text-white">Selecciona un Alumno</h2>
-                        <span id="suenoSubjetivoBadge" class="bg-amber-950 text-amber-400 px-3 py-1 rounded-full text-xs font-bold border border-amber-800">CALIDAD SUBJETIVA: 0/5</span>
+                        <span id="suenoSubjetivoBadge" class="bg-amber-950 text-amber-400 px-3 py-1 rounded-full text-xs font-bold border border-amber-800">CALIDAD SUBJETIVA: -/5</span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -198,13 +198,17 @@
     let currentSelectedAthlete = ""; 
     let currentAnalysisData = null;
 
+    // Helper para detectar la columna del nombre del alumno dinámicamente
+    function obtenerNombreAlumno(row) {
+        return row.nombre || row.alumno || row.atleta || row.nombre_atleta || row.user || row.usuario || row.name || null;
+    }
+
     // CARGA DE DATOS DESDE SUPABASE
     async function loadDataFromSupabase() {
         try {
             const listCardio = document.getElementById('athletesList');
             listCardio.innerHTML = `<p class="text-gray-400 text-center py-4">Cargando datos desde la nube...</p>`;
 
-            // Cambia 'registros_hrv' por el nombre exacto de tu tabla en Supabase
             const { data, error } = await supabaseClient
                 .from('registros_hrv')
                 .select('*')
@@ -216,9 +220,11 @@
             athletesData = {};
 
             rawData.forEach(row => {
-                const nombre = row.nombre || row.alumno || "Atleta";
-                if (!athletesData[nombre]) athletesData[nombre] = [];
-                athletesData[nombre].push(row);
+                const nombre = obtenerNombreAlumno(row);
+                if (nombre) {
+                    if (!athletesData[nombre]) athletesData[nombre] = [];
+                    athletesData[nombre].push(row);
+                }
             });
 
             renderAthletesList();
@@ -317,7 +323,7 @@
         
         const athleteNames = Object.keys(athletesData);
         if(athleteNames.length === 0) {
-            listContainer.innerHTML = `<p class="text-gray-500 text-center py-4">No hay registros aún en la base de datos.</p>`;
+            listContainer.innerHTML = `<p class="text-amber-400 text-center py-4 text-xs">⚠️ No se encontraron nombres de alumnos en la tabla de Supabase. Revisa las columnas de tu BD.</p>`;
             return;
         }
 
@@ -361,7 +367,7 @@
 
         const athleteNames = Object.keys(athletesData);
         if(athleteNames.length === 0) {
-            listContainer.innerHTML = `<p class="text-gray-500 text-center py-4">No hay registros aún.</p>`;
+            listContainer.innerHTML = `<p class="text-gray-500 text-center py-4 text-xs">No hay alumnos registrados.</p>`;
             return;
         }
 
@@ -369,9 +375,9 @@
             const records = athletesData[name];
             const latestRecord = records[records.length - 1];
             
-            const duracion = latestRecord.sueno_horas || latestRecord.horas_sueno || 7.5;
-            const eficiencia = latestRecord.sueno_eficiencia || 85;
-            const calidad = latestRecord.sueno_calidad || 4;
+            const duracion = latestRecord.sueno_horas || latestRecord.horas_sueno || 0;
+            const eficiencia = latestRecord.sueno_eficiencia || 0;
+            const calidad = latestRecord.sueno_calidad || 0;
 
             const activeStyle = (name === currentSelectedAthlete) ? "border-[#00adb5] bg-[#2d2d2d]" : "border-gray-800 bg-[#252525]";
 
@@ -485,12 +491,12 @@
         const records = athletesData[currentSelectedAthlete];
         const latestRecord = records[records.length - 1];
 
-        const horasTotales = latestRecord.sueno_horas || latestRecord.horas_sueno || 7.5;
-        const eficiencia = latestRecord.sueno_eficiencia || 88;
-        const sws = latestRecord.sueno_profundo || 1.8;
-        const rem = latestRecord.sueno_rem || 1.5;
+        const horasTotales = latestRecord.sueno_horas || latestRecord.horas_sueno || 0;
+        const eficiencia = latestRecord.sueno_eficiencia || 0;
+        const sws = latestRecord.sueno_profundo || 0;
+        const rem = latestRecord.sueno_rem || 0;
         const ligero = Math.max(0, (horasTotales - sws - rem)).toFixed(1);
-        const calidadSubjetiva = latestRecord.sueno_calidad || 4;
+        const calidadSubjetiva = latestRecord.sueno_calidad || 0;
 
         document.getElementById('suenoAthleteName').innerText = currentSelectedAthlete;
         document.getElementById('metricSuenoDuracion').innerText = `${horasTotales} hrs`;
@@ -518,7 +524,7 @@
         if (suenoBarInstance) suenoBarInstance.destroy();
 
         const suenoLabels = records.slice(-7).map(r => formatearFechaCronologica(r.fecha).split(' ')[0]);
-        const suenoValues = records.slice(-7).map(r => r.sueno_horas || r.horas_sueno || 7.0);
+        const suenoValues = records.slice(-7).map(r => r.sueno_horas || r.horas_sueno || 0);
 
         suenoBarInstance = new Chart(ctxBar, {
             type: 'bar',
