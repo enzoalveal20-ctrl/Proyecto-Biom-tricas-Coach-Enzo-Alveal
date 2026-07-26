@@ -12,7 +12,8 @@
 <body class="bg-[#121212] text-white min-h-screen p-6">
 
     <div class="max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+        <!-- HEADER -->
+        <header class="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
             <div>
                 <h1 class="text-3xl font-bold text-[#00adb5]">Perfil de Atleta 360°</h1>
                 <p class="text-gray-400 text-sm">Monitoreo Fisiológico y Semáforo de Recuperación Basal</p>
@@ -22,7 +23,18 @@
             </button>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- NAVEGACIÓN POR PESTAÑAS (TABS) -->
+        <div class="flex border-b border-gray-800 mb-6 gap-2">
+            <button id="tabCardioBtn" onclick="switchTab('cardio')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2">
+                🫀 Cardio & HRV
+            </button>
+            <button id="tabSuenoBtn" onclick="switchTab('sueno')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2">
+                🌙 Arquitectura de Sueño
+            </button>
+        </div>
+
+        <!-- ==================== PESTAÑA 1: CARDIO & HRV ==================== -->
+        <div id="viewCardio" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- Panel Izquierdo: Lista de Alumnos -->
             <div class="bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800">
@@ -65,23 +77,31 @@
                         </div>
                     </div>
 
-                    <!-- Grid Nivel 2 -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <!-- Grid Nivel 2 (Expandido con Métricas de Frecuencia LF/HF) -->
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[11px] text-gray-400 font-medium uppercase">Línea Base Basal</p>
-                            <p id="metricAvgHrv" class="text-xl font-bold text-white mt-0.5">-</p>
+                            <p class="text-[10px] text-gray-400 font-medium uppercase">Línea Base Basal</p>
+                            <p id="metricAvgHrv" class="text-lg font-bold text-white mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[11px] text-gray-400 font-medium uppercase">FC Reposo</p>
-                            <p id="metricPulse" class="text-xl font-bold text-rose-400 mt-0.5">-</p>
+                            <p class="text-[10px] text-gray-400 font-medium uppercase">FC Reposo</p>
+                            <p id="metricPulse" class="text-lg font-bold text-rose-400 mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[11px] text-gray-400 font-medium uppercase">Índice IBA (HRV/FC)</p>
-                            <p id="metricIBA" class="text-xl font-bold text-violet-400 mt-0.5">-</p>
+                            <p class="text-[10px] text-gray-400 font-medium uppercase">Índice IBA</p>
+                            <p id="metricIBA" class="text-lg font-bold text-violet-400 mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[11px] text-gray-400 font-medium uppercase">CV-RMSSD (7 días)</p>
-                            <p id="metricCV" class="text-xl font-bold text-cyan-400 mt-0.5">-</p>
+                            <p class="text-[10px] text-gray-400 font-medium uppercase">CV-RMSSD (7d)</p>
+                            <p id="metricCV" class="text-lg font-bold text-cyan-400 mt-0.5">-</p>
+                        </div>
+                        <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
+                            <p class="text-[10px] text-gray-400 font-medium uppercase">Potencia HF</p>
+                            <p id="metricHF" class="text-lg font-bold text-emerald-400 mt-0.5">-</p>
+                        </div>
+                        <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
+                            <p class="text-[10px] text-gray-400 font-medium uppercase">Ratio LF/HF</p>
+                            <p id="metricLFHF" class="text-lg font-bold text-amber-400 mt-0.5">-</p>
                         </div>
                     </div>
 
@@ -92,13 +112,62 @@
             </div>
 
         </div>
+
+        <!-- ==================== PESTAÑA 2: SUEÑO & RECUPERACIÓN ==================== -->
+        <div id="viewSueno" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800">
+                <h2 class="text-lg font-bold mb-4 text-[#00adb5] border-b border-gray-700 pb-2">Alumnos / Registros</h2>
+                <div id="athletesListSueno" class="space-y-3">
+                    <p class="text-gray-500 text-center py-4">Selecciona un alumno en la lista principal.</p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+                        <h2 id="suenoAthleteName" class="text-xl font-bold text-white">Enzo Alveal</h2>
+                        <span id="suenoSubjetivoBadge" class="bg-amber-950 text-amber-400 px-3 py-1 rounded-full text-xs font-bold border border-amber-800">CALIDAD SUBJETIVA: 0/5</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+                            <p class="text-xs text-gray-400 font-medium">Duración Total</p>
+                            <p id="metricSuenoDuracion" class="text-2xl font-black text-indigo-400 mt-1">- hrs</p>
+                        </div>
+                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+                            <p class="text-xs text-gray-400 font-medium">Eficiencia (%)</p>
+                            <p id="metricSuenoEficiencia" class="text-2xl font-black text-emerald-400 mt-1">-%</p>
+                        </div>
+                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+                            <p class="text-xs text-gray-400 font-medium">Sueño Profundo (SWS)</p>
+                            <p id="metricSuenoProfundo" class="text-2xl font-black text-purple-400 mt-1">- hrs</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-[#252525] p-4 rounded-xl border border-gray-800 flex flex-col items-center">
+                            <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Arquitectura del Sueño (Última Noche)</h3>
+                            <div class="w-48 h-48 flex items-center justify-center">
+                                <canvas id="suenoDonutChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-[#252525] p-4 rounded-xl border border-gray-800">
+                            <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Histórico de Horas Dormidas</h3>
+                            <div class="h-48">
+                                <canvas id="suenoBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <!-- MODAL EMERGENTE: ANÁLISIS CLÍNICO POR VARIABLE -->
     <div id="analysisModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-[#1e1e1e] border border-zinc-800 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-            
-            <!-- Cabecera del Modal -->
             <div class="p-5 border-b border-zinc-800 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -109,10 +178,8 @@
                 <button id="closeAnalysisBtn" class="text-gray-400 hover:text-white text-xl p-1 font-bold">&times;</button>
             </div>
 
-            <!-- Cuerpo del Modal -->
             <div class="p-6 space-y-4 overflow-y-auto" id="modalVariablesBody"></div>
 
-            <!-- Pie del Modal -->
             <div class="p-4 border-t border-zinc-800 bg-zinc-900/50 rounded-b-2xl text-right">
                 <button id="closeAnalysisBtn2" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
                     Cerrar Análisis
@@ -130,15 +197,39 @@
     let rawData = [];
     let athletesData = {};
     let hrvChartInstance = null;
+    let suenoDonutInstance = null;
+    let suenoBarInstance = null;
     let currentSelectedAthlete = ""; 
     let currentAnalysisData = null;
 
-    // Inicialización al cargar completamente la página
+    // CONTROL DE PESTAÑAS
+    function switchTab(tab) {
+        const viewCardio = document.getElementById('viewCardio');
+        const viewSueno = document.getElementById('viewSueno');
+        const btnCardio = document.getElementById('tabCardioBtn');
+        const btnSueno = document.getElementById('tabSuenoBtn');
+
+        if (tab === 'cardio') {
+            viewCardio.classList.remove('hidden');
+            viewSueno.classList.add('hidden');
+
+            btnCardio.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2";
+            btnSueno.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2";
+        } else {
+            viewCardio.classList.add('hidden');
+            viewSueno.classList.remove('hidden');
+
+            btnSueno.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2";
+            btnCardio.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2";
+            
+            renderSuenoView();
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         console.log("🚀 [CONSOLA BIOMÉTRICA] Iniciando Dashboard...");
         loadDataFromSupabase();
 
-        // CONTROL DE EVENTOS DE MODAL
         const btnAbrir = document.getElementById('openAnalysisBtn');
         const btnCerrarX = document.getElementById('closeAnalysisBtn');
         const btnCerrarTexto = document.getElementById('closeAnalysisBtn2');
@@ -160,9 +251,7 @@
                     construirContenidoModal(currentAnalysisData);
                 }
                 
-                if (modalContenedor) {
-                    modalContenedor.classList.remove('hidden');
-                }
+                if (modalContenedor) modalContenedor.classList.remove('hidden');
             });
         }
 
@@ -197,14 +286,13 @@
                 
             if (error) throw error;
             
-            console.log("✅ Datos recuperados de forma exitosa:", data);
             rawData = data;
             processAthletesData();
             renderAthletesList();
             
             if (loadingEl) loadingEl.style.display = 'none';
         } catch (err) {
-            console.error("❌ Error crítico en consulta a Supabase:", err);
+            console.error("❌ Error en consulta a Supabase:", err);
             if (loadingEl) loadingEl.innerText = "Error de conexión o tabla inaccesible.";
         }
     }
@@ -238,7 +326,7 @@
             const hrvValues = records.map(r => r.hrv_rmssd);
             const pulseValues = records.map(r => r.pulso_bpm);
             
-            const analisis = calcularSWCyRegresion(hrvValues, pulseValues);
+            const analisis = calcularSWCyRegresion(hrvValues, pulseValues, records);
             
             let borderColor = "border-green-500";
             if (analisis.alerta) {
@@ -275,7 +363,7 @@
         const hrvValues = records.map(r => r.hrv_rmssd);
         const pulseValues = records.map(r => r.pulso_bpm);
 
-        const analisis = calcularSWCyRegresion(hrvValues, pulseValues);
+        const analisis = calcularSWCyRegresion(hrvValues, pulseValues, records);
         currentAnalysisData = analisis;
 
         document.getElementById('selectedAthleteName').innerText = name;
@@ -287,6 +375,10 @@
         document.getElementById('metricRiskTrend').innerText = analisis.proyeccionDiasStatus;
         document.getElementById('metricIBA').innerText = analisis.error ? "-" : analisis.iba;
         document.getElementById('metricCV').innerText = analisis.error ? "-" : `${analisis.cv}%`;
+
+        // Métricas de Frecuencia LF y HF
+        document.getElementById('metricHF').innerText = analisis.latestHF ? `${analisis.latestHF} ms²` : "N/A";
+        document.getElementById('metricLFHF').innerText = analisis.latestLFHF ? analisis.latestLFHF : "N/A";
         
         const readinessEl = document.getElementById('metricReadiness');
         const readinessZoneEl = document.getElementById('metricReadinessZone');
@@ -320,7 +412,7 @@
         renderChart(records, analisis);
     }
 
-    function calcularSWCyRegresion(valoresCompletoRMSSD, valoresCompletoPulso) {
+    function calcularSWCyRegresion(valoresCompletoRMSSD, valoresCompletoPulso, records) {
         const totalMediciones = valoresCompletoRMSSD.length;
 
         if (totalMediciones < 5 || !valoresCompletoPulso || valoresCompletoPulso.length < 5) {
@@ -340,6 +432,7 @@
         const desviacionEstandar = Math.sqrt(varianza) || 1;
         const limiteInferiorSWC = promedio - (0.5 * desviacionEstandar);
 
+        const ultimoRecord = records[records.length - 1];
         const ultimoHRV = valoresCompletoRMSSD[totalMediciones - 1];
         const ultimoPulso = valoresCompletoPulso[totalMediciones - 1];
 
@@ -350,6 +443,11 @@
         const var7d = ventana7d.reduce((acc, v) => acc + Math.pow(v - prom7d, 2), 0) / ventana7d.length;
         const de7d = Math.sqrt(var7d);
         const cvCalculado = ((de7d / prom7d) * 100).toFixed(1);
+
+        // Extracción de LF y HF de Supabase si existen en el registro
+        const latestLF = ultimoRecord.hrv_lf || null;
+        const latestHF = ultimoRecord.hrv_hf || null;
+        const latestLFHF = (latestLF && latestHF) ? (latestLF / latestHF).toFixed(2) : null;
 
         let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
         for (let i = 0; i < n; i++) {
@@ -427,7 +525,10 @@
             iba: ibaCalculado,
             cv: cvCalculado,
             readiness: readinessCalculado,
-            readinessTxt: readinessTxt
+            readinessTxt: readinessTxt,
+            latestLF: latestLF,
+            latestHF: latestHF,
+            latestLFHF: latestLFHF
         };
     }
 
@@ -571,6 +672,57 @@
         });
     }
 
+    function renderSuenoView() {
+        document.getElementById('suenoAthleteName').innerText = currentSelectedAthlete || "Selecciona un Atleta";
+        
+        // Donut Chart - Arquitectura de Sueño
+        const ctxDonut = document.getElementById('suenoDonutChart').getContext('2d');
+        if (suenoDonutInstance) suenoDonutInstance.destroy();
+        
+        suenoDonutInstance = new Chart(ctxDonut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Profundo (SWS)', 'Ligero', 'REM'],
+                datasets: [{
+                    data: [25, 55, 20],
+                    backgroundColor: ['#a855f7', '#3b82f6', '#06b6d4'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Bar Chart - Histórico de Horas
+        const ctxBar = document.getElementById('suenoBarChart').getContext('2d');
+        if (suenoBarInstance) suenoBarInstance.destroy();
+
+        suenoBarInstance = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['07-16', '07-17', '07-18', '07-19', '07-21', '07-22', '07-25'],
+                datasets: [{
+                    label: 'Horas Dormidas',
+                    data: [7.2, 6.8, 8.0, 7.5, 6.2, 7.8, 8.1],
+                    backgroundColor: '#00adb5',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                    x: { grid: { display: false }, ticks: { color: '#888' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
     function formatearFechaCronologica(fechaStr) {
         try {
             const d = new Date(fechaStr);
@@ -643,6 +795,15 @@
             hrvDesc = "La variabilidad actual se mantiene por encima del umbral mínimo de seguridad. El tejido y sistema autónomo mantienen capacidad de respuesta.";
         }
 
+        // Análisis Espectral LF/HF
+        let lfhfDesc = "Datos de banda en frecuencia no disponibles en esta toma.";
+        if (analisis.latestLFHF) {
+            const ratio = parseFloat(analisis.latestLFHF);
+            if (ratio < 1.0) lfhfDesc = `Ratio actual (${ratio}): Predominio Parasimpático / Regeneración.`;
+            else if (ratio <= 2.0) lfhfDesc = `Ratio actual (${ratio}): Balance Neurovegetativo Equilibrado.`;
+            else lfhfDesc = `Ratio actual (${ratio}): Predominio Simpático / Estrés Acumulado.`;
+        }
+
         body.innerHTML = `
             <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800">
                 <div class="flex justify-between items-start mb-2">
@@ -684,6 +845,20 @@
                     </div>
                 </div>
                 <p class="text-xs text-gray-400 leading-relaxed mt-2">${cvDesc}</p>
+            </div>
+
+            <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h4 class="text-sm font-black text-amber-400 uppercase">4. Dominio de Frecuencia (LF / HF)</h4>
+                        <p class="text-xs font-bold text-amber-300 mt-0.5">Análisis de Espectro Autonómico</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xl font-black text-white">${analisis.latestLFHF || '-'}</span>
+                        <p class="text-[9px] text-gray-500 font-bold uppercase">Ratio LF/HF</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 leading-relaxed mt-2">${lfhfDesc}</p>
             </div>
         `;
     }
