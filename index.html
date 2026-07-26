@@ -387,29 +387,81 @@
         document.querySelectorAll('.tab-btn')[activeIndex].classList.add('active');
     }
 
-    // Lógica Medición Nocturna
-    let isTracking = false;
-    function toggleSleepTracking() {
-        const btn = document.getElementById('btnStartSleep');
-        const status = document.getElementById('trackingStatus');
+// ==========================================
+// LÓGICA DE MEDICIÓN NOCTURNA Y ACELERÓMETRO
+// ==========================================
+let sleepInterval = null;
+let datosMovimiento = [];
+let horaInicioSueno = null;
+let acumuladoMovimientoMinuto = 0;
 
-        if (!isTracking) {
-            isTracking = true;
-            btn.innerText = "☀️ Sesión de Sueño Completada";
-            btn.style.backgroundColor = "#e76f51";
-            status.innerText = "Estado: Registrando noche...";
-            status.style.background = "#28a745";
-            status.style.color = "#fff";
-        } else {
-            isTracking = false;
-            btn.innerText = "🌙 Iniciar Noche de Sueño";
-            btn.style.backgroundColor = "var(--primary)";
-            status.innerText = "Estado: Sesión enviada al procesador";
-            status.style.background = "#333";
-            status.style.color = "#aaa";
-            alert("Datos de la sesión de sueño enviados exitosamente al procesador de análisis.");
+// Escuchar movimiento del acelerómetro para método "Cama"
+if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', (event) => {
+        if (!sleepInterval) return; // Registrar solo si está activo
+        
+        const acc = event.accelerationIncludingGravity;
+        if (acc) {
+            // Calcular magnitud vectorial restando gravedad
+            const magnitud = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+            const deltaMovimiento = Math.abs(magnitud - 9.81);
+            
+            if (deltaMovimiento > 0.4) {
+                acumuladoMovimientoMinuto += deltaMovimiento;
+            }
         }
+    });
+}
+
+function toggleSleepTracking() {
+    const btn = document.getElementById('btnStartSleep');
+    const status = document.getElementById('trackingStatus');
+    const metodo = document.getElementById('sensorMethod').value;
+
+    if (!sleepInterval) {
+        // --- INICIAR SEGUIMIENTO NOCTURNO ---
+        horaInicioSueno = new Date().toISOString();
+        datosMovimiento = [];
+        acumuladoMovimientoMinuto = 0;
+
+        // Registrar muestra cada 60 segundos
+        sleepInterval = setInterval(() => {
+            datosMovimiento.push({
+                t: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                actividad: parseFloat(acumuladoMovimientoMinuto.toFixed(2))
+            });
+            acumuladoMovimientoMinuto = 0;
+        }, 60000);
+
+        btn.innerText = "🛑 Detener y Finalizar Noche";
+        btn.style.backgroundColor = "#ef4444";
+        status.innerText = "🟢 Monitoreando (" + metodo.toUpperCase() + ")...";
+        status.style.background = "#064e3b";
+        status.style.color = "#34d399";
+
+    } else {
+        // --- DETENER SEGUIMIENTO NOCTURNO ---
+        clearInterval(sleepInterval);
+        sleepInterval = null;
+        const horaFinSueno = new Date().toISOString();
+
+        btn.innerText = "🌙 Iniciar Noche de Sueño";
+        btn.style.backgroundColor = "";
+        status.innerText = "⚪ Noche Finalizada. Datos guardados temporalmente.";
+        status.style.background = "#1e293b";
+        status.style.color = "#cbd5e1";
+
+        // Almacenar sesión temporalmente
+        window.sesionSuenoTemporal = {
+            inicio: horaInicioSueno,
+            fin: horaFinSueno,
+            metodo: metodo,
+            raw_movimiento: datosMovimiento
+        };
+
+        alert("✓ Registro nocturno finalizado. Puedes avanzar a la evaluación matutina.");
     }
+}
 
     // MOTOR PPG Y ALGORITMO ORIGINAL RESTAURADO
     const startBtn = document.getElementById('startBtn');
