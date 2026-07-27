@@ -69,35 +69,42 @@
             </button>
         </div>
 
-        <!-- ================= PASO 2: CARDIO BASAL ================= -->
-        <div id="sectionCardio" class="hidden space-y-4">
-            <p class="text-xs text-gray-400 text-center">
-                Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash para iniciar el chequeo PPG.
-            </p>
+<!-- ================= PASO 2: CARDIO BASAL ================= -->
+<div id="sectionCardio" class="hidden space-y-4">
+    <p class="text-xs text-gray-400 text-center">
+        Ingresa las mediciones basales capturadas o inicia el chequeo PPG.
+    </p>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
-                    <p class="text-[10px] text-gray-400 font-bold uppercase">HRV (rMSSD)</p>
-                    <p id="displayHrv" class="text-xl font-black text-[#00adb5] mt-1">-- ms</p>
-                    <p class="text-[9px] text-gray-500">Variabilidad Cardíaca</p>
-                </div>
-                <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
-                    <p class="text-[10px] text-gray-400 font-bold uppercase">Frecuencia (BPM)</p>
-                    <p id="displayBpm" class="text-xl font-black text-rose-400 mt-1">--</p>
-                    <p class="text-[9px] text-gray-500">Latidos por Minuto</p>
-                </div>
-            </div>
-
-            <button id="btnMedirCardio" onclick="simularMedicionCardio()" class="w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition">
-                Iniciar Medición Cardiovascular (60s)
-            </button>
-
-            <button onclick="guardarYFinalizarEvaluacion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2">
-                💾 Guardar Evaluación Completa en Nube
-            </button>
+    <!-- Muestra de métricas (Inician vacías) -->
+    <div class="grid grid-cols-2 gap-3">
+        <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
+            <p class="text-[10px] text-gray-400 font-bold uppercase">HRV (rMSSD)</p>
+            <p id="displayHrv" class="text-xl font-black text-[#00adb5] mt-1">-- ms</p>
+            <p class="text-[9px] text-gray-500">Variabilidad Cardíaca</p>
         </div>
-
+        <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
+            <p class="text-[10px] text-gray-400 font-bold uppercase">Frecuencia (BPM)</p>
+            <p id="displayBpm" class="text-xl font-black text-rose-400 mt-1">-- BPM</p>
+            <p class="text-[9px] text-gray-500">Latidos por Minuto</p>
+        </div>
     </div>
+
+    <!-- Inputs Manuales para Datos Reales -->
+    <div class="grid grid-cols-2 gap-3 pt-1">
+        <div>
+            <label class="block text-[11px] text-gray-400 mb-1">HRV Real (ms):</label>
+            <input type="number" id="inputHrvManual" oninput="actualizarCardioDesdeInput()" placeholder="Ej: 65" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+        </div>
+        <div>
+            <label class="block text-[11px] text-gray-400 mb-1">Pulso Real (BPM):</label>
+            <input type="number" id="inputBpmManual" oninput="actualizarCardioDesdeInput()" placeholder="Ej: 58" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+        </div>
+    </div>
+
+    <button onclick="guardarYFinalizarEvaluacion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 mt-2">
+        💾 Guardar Evaluación Completa en Nube
+    </button>
+</div>
 
 <script>
     // 1. CONFIGURACIÓN SUPABASE
