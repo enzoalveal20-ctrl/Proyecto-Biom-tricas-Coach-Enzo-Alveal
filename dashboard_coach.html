@@ -592,7 +592,36 @@ function renderSuenoView() {
         }
     });
 }
+// Renderizado rápido del último registro
+if (latestRecord.glucosa_basal_mgdl) {
+    document.getElementById('coachGlucosaVal').innerText = `${latestRecord.glucosa_basal_mgdl} mg/dL`;
+    document.getElementById('coachGlucosaTendencia').innerText = `Contexto: ${latestRecord.tendencia_glucosa || 'N/A'}`;
+}
 
+// Llamada a Python AnyWhere para analítica de tendencia
+async function cargarAnaliticaGlucosa(registrosAtleta) {
+    const response = await fetch('https://tu-usuario.pythonanywhere.com/api/analitica_glucosa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            registros: registrosAtleta.map(r => ({ glucosa: r.glucosa_basal_mgdl, hrv: r.hrv_ms }))
+        })
+    });
+    
+    if (response.ok) {
+        const data = await response.json();
+        document.getElementById('coachGlucosaCV').innerText = `${data.coeficiente_variacion_pct}%`;
+        document.getElementById('coachGlucosaEstado').innerText = data.estado;
+        
+        const alertaEl = document.getElementById('coachGlucosaAlerta');
+        if (data.alerta) {
+            alertaEl.innerText = `⚠️ ${data.alerta}`;
+            alertaEl.classList.remove('hidden');
+        } else {
+            alertaEl.classList.add('hidden');
+        }
+    }
+}
     function formatearFechaCronologica(fechaStr) {
         try {
             const d = new Date(fechaStr);
