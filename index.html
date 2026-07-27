@@ -176,31 +176,32 @@ async function guardarYFinalizarEvaluacion() {
     const inputCalidad = document.getElementById('selectCalidadSueno').value;
     const modoUbicacion = document.getElementById('modoDispositivo').value;
 
-    // Payload emparejado EXACTAMENTE con las columnas de tu Supabase
+    // Objeto limpio apuntando a las columnas de la tabla 'registros_hrv'
     const payload = {
         alumno_nombre: nombreAlumno,                     // text
         fecha: new Date().toISOString().split('T')[0],   // date
         hrv_rmssd: parseFloat(hrvMedido),               // float8
         pulso_bpm: parseInt(bpmMedido),                 // int8
-        metodo_sensor: modoUbicacion                     // text ('velador' o 'cama')
+        metodo_sensor: modoUbicacion                     // text
     };
 
-    // Agregar datos de sueño solo si fueron ingresados o medidos
+    // Agregar datos opcionales solo si el usuario los llenó
     if (inputHoras !== "" && parseFloat(inputHoras) > 0) {
         const hs = parseFloat(inputHoras);
         payload.horas_sueno = hs;                         // float8
         payload.eficiencia_sueno = Math.min(100, Math.round((hs / 8) * 90)); // int8
     }
 
-    if (inputCalidad !== "0") {
+    if (inputCalidad !== "0" && inputCalidad !== "") {
         payload.calidad_sueno_subjetiva = parseInt(inputCalidad); // int8
     }
 
     try {
         console.log("Enviando a Supabase:", payload);
 
+        // Apuntamos a la tabla 'registros_hrv' que no tiene caracteres especiales
         const { data, error } = await supabaseClient
-            .from('BiometricasEnzuss_IntervalR-R_Remoto') // Tu tabla exacta
+            .from('registros_hrv')
             .insert([payload]);
 
         if (error) throw error;
