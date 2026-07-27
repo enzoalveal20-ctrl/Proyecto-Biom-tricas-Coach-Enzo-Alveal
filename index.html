@@ -21,7 +21,7 @@
         <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
             <div id="stepTab1" onclick="irASection('sueno')" class="py-2 bg-[#00adb5] text-black rounded-lg transition cursor-pointer">1. Sueño</div>
             <div id="stepTab2" onclick="irASection('cardio')" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer">2. Cardio Basal</div>
-            <div id="stepTab3" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-not-allowed">3. Glucosa</div>
+            <div id="stepTab3" onclick="irASection('glucosa')" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer">3. Glucosa</div>
         </div>
 
         <!-- ================= PASO 1: MEDICIÓN Y REGISTRO DE SUEÑO ================= -->
@@ -75,16 +75,13 @@
                 Realiza la medición de 60s con la cámara o ingresa las métricas manualmente.
             </p>
 
-            <!-- ELEMENTOS OCULTOS PARA CÁMARA Y FOTOGRAMAS PPG -->
             <video id="webcam" autoplay playsinline class="hidden"></video>
             <canvas id="canvasPPG" width="20" height="20" class="hidden"></canvas>
 
-            <!-- Barra de Progreso Avanzada -->
             <div id="progressContainer" class="hidden w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
                 <div id="progressBar" class="bg-[#00adb5] h-full w-0 transition-all duration-100"></div>
             </div>
 
-            <!-- Muestra de métricas -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
                     <p class="text-[10px] text-gray-400 font-bold uppercase">HRV (rMSSD)</p>
@@ -98,7 +95,6 @@
                 </div>
             </div>
 
-            <!-- BOTÓN INICIAR EVALUACIÓN -->
             <button id="btnMedirCardio" onclick="iniciarMedicionCardio()" class="w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition shadow-lg">
                 🫀 Iniciar Medición Cardiovascular (60s)
             </button>
@@ -109,7 +105,6 @@
                 <div class="flex-grow border-t border-zinc-800"></div>
             </div>
 
-            <!-- Inputs Manuales -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[11px] text-gray-400 mb-1">HRV Real (ms):</label>
@@ -121,7 +116,38 @@
                 </div>
             </div>
 
-            <button onclick="guardarYFinalizarEvaluacion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 mt-2">
+            <button onclick="irASection('glucosa')" class="w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 mt-2">
+                Ir a Medición de Glucosa →
+            </button>
+        </div>
+
+        <!-- ================= PASO 3: GLUCOSA BASAL ================= -->
+        <div id="sectionGlucosa" class="hidden space-y-4">
+            <div class="bg-zinc-900/80 p-4 rounded-xl border border-zinc-800 space-y-3">
+                <h3 class="text-sm font-bold text-[#00adb5] flex items-center gap-2 mb-1">
+                    🩸 MEDICIÓN DE GLUCOSA EN AYUNAS
+                </h3>
+                <p class="text-xs text-gray-400">
+                    Ingresa el resultado obtenido con tu glucómetro matutino.
+                </p>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Glucemia Basal (mg/dL):</label>
+                    <input type="number" id="inputGlucosa" placeholder="Ej: 85" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Estado / Tendencia de Glucosa:</label>
+                    <select id="selectTendenciaGlucosa" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+                        <option value="Ayuno Estricto">Ayuno Estricto (>8h)</option>
+                        <option value="Ayuno Ligero">Ayuno Ligero (6-8h)</option>
+                        <option value="Estable">Estable</option>
+                        <option value="Post-Entreno">Post-Entreno</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="guardarYFinalizarEvaluacion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 mt-2 shadow-lg">
                 💾 Guardar Evaluación Completa en Nube
             </button>
         </div>
@@ -140,31 +166,44 @@
     let bpmMedido = null;
     let nocheActiva = false;
     
-    // Variables Motor Óptico de Alta Precisión
+    // Variables Motor Óptico
     let streamRef = null;
     let animationFrameId = null;
     let ppgSignal = [];
     let timeStamps = [];
     let startTime = 0;
-    const DURATION = 60000; // 60 segundos
+    const DURATION = 60000;
 
     // 3. NAVEGACIÓN ENTRE SECCIONES
     function irASection(seccion) {
         const secSueno = document.getElementById('sectionSueno');
         const secCardio = document.getElementById('sectionCardio');
+        const secGlucosa = document.getElementById('sectionGlucosa');
+        
         const tab1 = document.getElementById('stepTab1');
         const tab2 = document.getElementById('stepTab2');
+        const tab3 = document.getElementById('stepTab3');
+
+        secSueno.classList.add('hidden');
+        secCardio.classList.add('hidden');
+        secGlucosa.classList.add('hidden');
+
+        const inactiveStyle = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer";
+        const activeStyle = "py-2 bg-[#00adb5] text-black rounded-lg transition cursor-pointer";
+
+        tab1.className = inactiveStyle;
+        tab2.className = inactiveStyle;
+        tab3.className = inactiveStyle;
 
         if (seccion === 'cardio') {
-            secSueno.classList.add('hidden');
             secCardio.classList.remove('hidden');
-            tab1.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer";
-            tab2.className = "py-2 bg-[#00adb5] text-black rounded-lg transition cursor-pointer";
+            tab2.className = activeStyle;
+        } else if (seccion === 'glucosa') {
+            secGlucosa.classList.remove('hidden');
+            tab3.className = activeStyle;
         } else {
-            secCardio.classList.add('hidden');
             secSueno.classList.remove('hidden');
-            tab1.className = "py-2 bg-[#00adb5] text-black rounded-lg transition cursor-pointer";
-            tab2.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer";
+            tab1.className = activeStyle;
         }
     }
 
@@ -183,7 +222,7 @@
         }
     }
 
-    // 5. MEDICIÓN CARDIOVASCULAR OPTIMIZADA (SOPORTE WEBCAM PC / MÓVIL)
+    // 5. MEDICIÓN CARDIOVASCULAR OPTIMIZADA
     async function iniciarMedicionCardio() {
         const btn = document.getElementById('btnMedirCardio');
         const video = document.getElementById('webcam');
@@ -206,25 +245,13 @@
         progressBar.style.width = '0%';
 
         try {
-            // Intentar primero con la cámara trasera (para dispositivos móviles)
             try {
                 streamRef = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: { exact: "environment" }, 
-                        frameRate: { ideal: 30 },
-                        width: { ideal: 160 },
-                        height: { ideal: 160 }
-                    }
+                    video: { facingMode: { exact: "environment" }, frameRate: { ideal: 30 }, width: { ideal: 160 }, height: { ideal: 160 } }
                 });
             } catch (eEnv) {
-                // Si falla (por estar en webcam de Computador PC), usar cualquier cámara disponible
                 streamRef = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: "environment", 
-                        frameRate: { ideal: 30 },
-                        width: { ideal: 160 },
-                        height: { ideal: 160 }
-                    }
+                    video: { facingMode: "environment", frameRate: { ideal: 30 }, width: { ideal: 160 }, height: { ideal: 160 } }
                 });
             }
 
@@ -237,12 +264,11 @@
                     await track.applyConstraints({ advanced: [{ torch: true }] });
                 }
             } catch (torchErr) {
-                console.log("Flash no disponible o en cámara de PC.");
+                console.log("Flash no disponible.");
             }
 
             startTime = performance.now();
             
-            // Loop optimizado por Callback de fotogramas o Fallback de alto rendimiento
             if ('requestVideoFrameCallback' in video) {
                 video.requestVideoFrameCallback(processFrameCallback);
             } else {
@@ -309,14 +335,13 @@
         if (animationFrameId) cancelAnimationFrame(animationFrameId);
     }
 
-    // 6. FILTRO DE PERCENTIL Y EXTRACCIÓN AVANZADA DE RMSSD / BPM
     function finalizarMedicionPPG() {
         apagarCamaraYFlash();
 
         const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
         
         if (rrIntervals.length < 20) {
-            alert(`Lectura incompleta (${rrIntervals.length} latidos detectados). Apoya suavemente el dedo sobre la cámara/luz sin presionar demasiado.`);
+            alert(`Lectura incompleta (${rrIntervals.length} latidos detectados). Apoya suavemente el dedo sobre la cámara/luz.`);
             document.getElementById('displayHrv').innerText = `-- ms`;
             document.getElementById('displayBpm').innerText = `-- BPM`;
             document.getElementById('latidosInfo').innerText = "Lectura Incompleta";
@@ -341,7 +366,6 @@
         btn.innerText = "✓ Medición PPG Completada (Repetir)";
     }
 
-    // ALGORITMO FILTRO PERCENTIL + ANTI-JITTER
     function calculateRRIntervals(signal, timestamps) {
         const rrIntervals = [];
         const smoothSignal = [];
@@ -349,7 +373,6 @@
 
         if (signal.length < 60) return [];
 
-        // 1. Eliminación de deriva (Media móvil centrada)
         for(let i = 0; i < signal.length; i++) {
             let start = Math.max(0, i - windowSize);
             let end = Math.min(signal.length, i + windowSize);
@@ -358,14 +381,12 @@
             smoothSignal.push(signal[i] - (localMean / (end - start)));
         }
 
-        // 2. Percentil 75 para Umbral Dinámico de Picos
         const sortedValues = [...smoothSignal].sort((a, b) => a - b);
         const indexPercentil = Math.floor(sortedValues.length * 0.75);
         const globalThreshold = Math.max(sortedValues[indexPercentil], 0.01);
 
         let lastPeakTime = null;
 
-        // 3. Extracción con bloqueo refractario antidicrótico
         for (let i = 1; i < smoothSignal.length - 1; i++) {
             if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
                 const currentPeakTime = timestamps[i];
@@ -373,8 +394,8 @@
                 if (lastPeakTime !== null) {
                     const rr = currentPeakTime - lastPeakTime;
 
-                    if (rr < 600) continue; // Bloqueo de onda dicrótica / Doble pico
-                    if (rr >= 600 && rr <= 1600) { // Ventana fisiológica (38 a 100 BPM)
+                    if (rr < 600) continue; 
+                    if (rr >= 600 && rr <= 1600) { 
                         rrIntervals.push(rr);
                         lastPeakTime = currentPeakTime;
                     }
@@ -386,7 +407,6 @@
 
         if (rrIntervals.length < 5) return [];
 
-        // 4. Limpieza de Outliers y Estabilización de Jitter
         const finalRR = [];
         const avgGlobal = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
         const filteredOutliers = rrIntervals.filter(rr => Math.abs(rr - avgGlobal) / avgGlobal <= 0.25);
@@ -399,7 +419,6 @@
             const curr = filteredOutliers[i];
             const pctChange = Math.abs(curr - prev) / prev;
 
-            // Corrección de saltos por FPS inestables de cámara
             if (pctChange > 0.15) {
                 const sign = curr > prev ? 1 : -1;
                 finalRR.push(prev + (prev * 0.08 * sign)); 
@@ -418,7 +437,7 @@
 
         for (let i = 0; i < rrIntervals.length - 1; i++) {
             const diff = rrIntervals[i] - rrIntervals[i+1];
-            if (Math.abs(diff) > 120) continue; // Descarte de artefactos bruscos
+            if (Math.abs(diff) > 120) continue;
 
             sumSquaredDiffs += diff * diff;
             validDiffsCount++;
@@ -436,7 +455,6 @@
         document.getElementById('progressContainer').classList.add('hidden');
     }
 
-    // 7. ENTRADA MANUAL
     function actualizarCardioDesdeInput() {
         apagarCamaraYFlash();
         resetearBotonCardio();
@@ -463,7 +481,7 @@
         }
     }
 
-    // 8. GUARDAR EN SUPABASE
+    // 6. GUARDAR EN SUPABASE (SUEÑO + CARDIO + GLUCOSA)
     async function guardarYFinalizarEvaluacion() {
         if (!hrvMedido || !bpmMedido) {
             alert("Por favor realiza la medición cardiovascular o ingresa las métricas manualmente antes de guardar.");
@@ -474,6 +492,10 @@
         const inputHoras = document.getElementById('inputHorasSueno').value;
         const inputCalidad = document.getElementById('selectCalidadSueno').value;
         const modoUbicacion = document.getElementById('modoDispositivo').value;
+        
+        // Nuevos valores para Glucosa
+        const inputGlucosa = document.getElementById('inputGlucosa').value;
+        const tendenciaGlucosa = document.getElementById('selectTendenciaGlucosa').value;
 
         const tzoffset = (new Date()).getTimezoneOffset() * 60000;
         const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
@@ -486,6 +508,7 @@
             metodo_sensor: modoUbicacion
         };
 
+        // Datos opcionales de Sueño
         if (inputHoras !== "" && parseFloat(inputHoras) > 0) {
             const hs = parseFloat(inputHoras);
             payload.horas_sueno = hs;
@@ -496,8 +519,14 @@
             payload.calidad_sueno_subjetiva = parseInt(inputCalidad);
         }
 
+        // Datos opcionales de Glucosa mapeados exactamente a tu Supabase
+        if (inputGlucosa !== "" && parseFloat(inputGlucosa) > 0) {
+            payload.glucosa_basal_mgdl = parseFloat(inputGlucosa);
+            payload.tendencia_glucosa = tendenciaGlucosa;
+        }
+
         try {
-            console.log("Enviando registro real a Supabase:", payload);
+            console.log("Enviando registro completo a Supabase:", payload);
 
             const { data, error } = await supabaseClient
                 .from('registros_hrv')
@@ -505,7 +534,7 @@
 
             if (error) throw error;
 
-            alert("¡Evaluación registrada con éxito en Supabase!");
+            alert("¡Evaluación matutina completa guardada con éxito!");
             limpiarFormularioCompleto();
 
         } catch (err) {
@@ -514,7 +543,7 @@
         }
     }
 
-    // 9. LIMPIAR FORMULARIO
+    // 7. LIMPIAR FORMULARIO
     function limpiarFormularioCompleto() {
         apagarCamaraYFlash();
         resetearBotonCardio();
@@ -526,6 +555,7 @@
         if (document.getElementById('selectCalidadSueno')) document.getElementById('selectCalidadSueno').value = '0';
         if (document.getElementById('inputHrvManual')) document.getElementById('inputHrvManual').value = '';
         if (document.getElementById('inputBpmManual')) document.getElementById('inputBpmManual').value = '';
+        if (document.getElementById('inputGlucosa')) document.getElementById('inputGlucosa').value = '';
         
         if (document.getElementById('displayHrv')) document.getElementById('displayHrv').innerText = '-- ms';
         if (document.getElementById('displayBpm')) document.getElementById('displayBpm').innerText = '-- BPM';
