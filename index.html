@@ -17,12 +17,12 @@
             <h2 id="athleteDisplayName" class="text-xl font-black text-white mt-1">Enzo Alveal</h2>
         </div>
 
-        <!-- INDICADOR DE PASOS -->
-        <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
-            <div id="stepTab1" class="py-2 bg-[#00adb5] text-black rounded-lg transition">1. Sueño</div>
-            <div id="stepTab2" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition">2. Cardio Basal</div>
-            <div id="stepTab3" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition">3. Glucosa</div>
-        </div>
+<!-- INDICADOR DE PASOS CON ONCLICK -->
+<div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+    <div id="stepTab1" onclick="irASection('sueno')" class="py-2 bg-[#00adb5] text-black rounded-lg transition cursor-pointer">1. Sueño</div>
+    <div id="stepTab2" onclick="irASection('cardio')" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer">2. Cardio Basal</div>
+    <div id="stepTab3" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-not-allowed">3. Glucosa</div>
+</div>
 
         <!-- ================= PASO 1: MEDICIÓN Y REGISTRO DE SUEÑO ================= -->
         <div id="sectionSueno" class="space-y-4">
@@ -99,14 +99,14 @@
 
     </div>
 
-    <script>
+<script>
     // 1. CONFIGURACIÓN SUPABASE
     const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // 2. ESTADO GLOBAL
-    let nombreAlumno = "Enzo Alveal"; // Nombre asignado al dispositivo o login
+    let nombreAlumno = "Enzo Alveal"; // Nombre asignado al dispositivo
     let hrvMedido = null;
     let bpmMedido = null;
     let nocheActiva = false;
@@ -121,13 +121,13 @@
         if (seccion === 'cardio') {
             secSueno.classList.add('hidden');
             secCardio.classList.remove('hidden');
-            tab1.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition";
-            tab2.className = "py-2 bg-[#00adb5] text-black rounded-lg transition";
+            tab1.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer";
+            tab2.className = "py-2 bg-[#00adb5] text-black rounded-lg transition cursor-pointer";
         } else {
             secCardio.classList.add('hidden');
             secSueno.classList.remove('hidden');
-            tab1.className = "py-2 bg-[#00adb5] text-black rounded-lg transition";
-            tab2.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition";
+            tab1.className = "py-2 bg-[#00adb5] text-black rounded-lg transition cursor-pointer";
+            tab2.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition cursor-pointer";
         }
     }
 
@@ -153,7 +153,6 @@
         btn.disabled = true;
 
         setTimeout(() => {
-            // Valores simulados de prueba (sustituir por la lectura real de cámara/sensor)
             hrvMedido = (Math.random() * (75 - 45) + 45).toFixed(1);
             bpmMedido = Math.floor(Math.random() * (70 - 55) + 55);
 
@@ -166,76 +165,66 @@
     }
 
     // 6. ENVÍO UNIFICADO A SUPABASE
-async function guardarYFinalizarEvaluacion() {
-    // 1. Verificación de sensores reales
-    if (!hrvMedido || !bpmMedido) {
-        alert("Por favor realiza la medición cardiovascular con la cámara antes de guardar.");
-        return;
+    async function guardarYFinalizarEvaluacion() {
+        if (!hrvMedido || !bpmMedido) {
+            alert("Por favor realiza la medición cardiovascular con la cámara antes de guardar.");
+            return;
+        }
+
+        const inputNombre = document.getElementById('selectAlumno') ? document.getElementById('selectAlumno').value : nombreAlumno;
+        const inputHoras = document.getElementById('inputHorasSueno').value;
+        const inputCalidad = document.getElementById('selectCalidadSueno').value;
+        const modoUbicacion = document.getElementById('modoDispositivo').value;
+
+        const payload = {
+            alumno_nombre: inputNombre,
+            fecha: new Date().toISOString(),
+            hrv_rmssd: parseFloat(hrvMedido),
+            pulso_bpm: parseInt(bpmMedido),
+            metodo_sensor: modoUbicacion
+        };
+
+        if (inputHoras !== "" && parseFloat(inputHoras) > 0) {
+            const hs = parseFloat(inputHoras);
+            payload.horas_sueno = hs;
+            payload.eficiencia_sueno = Math.min(100, Math.round((hs / 8) * 100)); 
+        }
+
+        if (inputCalidad !== "0" && inputCalidad !== "") {
+            payload.calidad_sueno_subjetiva = parseInt(inputCalidad);
+        }
+
+        try {
+            console.log("Enviando registro real a Supabase:", payload);
+
+            const { data, error } = await supabaseClient
+                .from('registros_hrv')
+                .insert([payload]);
+
+            if (error) throw error;
+
+            alert("¡Evaluación registrada con éxito!");
+            limpiarFormularioCompleto();
+
+        } catch (err) {
+            console.error("Error al guardar registro:", err);
+            alert(`No se pudo guardar la evaluación: ${err.message}`);
+        }
     }
 
-    // 2. Lectura directa de los inputs reales ingresados por el atleta
-    const inputNombre = document.getElementById('selectAlumno') ? document.getElementById('selectAlumno').value : nombreAlumno;
-    const inputHoras = document.getElementById('inputHorasSueno').value;
-    const inputCalidad = document.getElementById('selectCalidadSueno').value;
-    const modoUbicacion = document.getElementById('modoDispositivo').value;
-
-    // 3. Payload base con datos fisiológicos REALES capturados por la cámara/algoritmo
-    const payload = {
-        alumno_nombre: inputNombre,                      // Nombre real del atleta
-        fecha: new Date().toISOString(),                 // Timestamp real de la evaluación
-        hrv_rmssd: parseFloat(hrvMedido),                // Medición real PPG
-        pulso_bpm: parseInt(bpmMedido),                  // Pulso real PPG
-        metodo_sensor: modoUbicacion                      // Ubicación/Dispositivo
-    };
-
-    // 4. Métrica opcional: Horas de Sueño (solo si el atleta lo digitó)
-    if (inputHoras !== "" && parseFloat(inputHoras) > 0) {
-        const hs = parseFloat(inputHoras);
-        payload.horas_sueno = hs;
-        // Eficiencia estimada basada únicamente en horas reportadas
-        payload.eficiencia_sueno = Math.min(100, Math.round((hs / 8) * 100)); 
-    }
-
-    // 5. Métrica opcional: Calidad Subjetiva (solo si el atleta seleccionó una)
-    if (inputCalidad !== "0" && inputCalidad !== "") {
-        payload.calidad_sueno_subjetiva = parseInt(inputCalidad);
-    }
-
-    try {
-        console.log("Enviando registro real a Supabase:", payload);
-
-        const { data, error } = await supabaseClient
-            .from('registros_hrv')
-            .insert([payload]);
-
-        if (error) throw error;
-
-        alert("¡Evaluación registrada con éxito!");
+    // 7. LIMPIAR FORMULARIO
+    function limpiarFormularioCompleto() {
+        hrvMedido = null;
+        bpmMedido = null;
         
-        // Resetear la interfaz para la siguiente evaluación
-        limpiarFormularioCompleto();
-
-    } catch (err) {
-        console.error("Error al guardar registro:", err);
-        alert(`No se pudo guardar la evaluación: ${err.message}`);
+        if (document.getElementById('inputHorasSueno')) document.getElementById('inputHorasSueno').value = '';
+        if (document.getElementById('selectCalidadSueno')) document.getElementById('selectCalidadSueno').value = '0';
+        
+        if (document.getElementById('displayHrv')) document.getElementById('displayHrv').innerText = '-- ms';
+        if (document.getElementById('displayBpm')) document.getElementById('displayBpm').innerText = '--';
+        
+        irASection('sueno');
     }
-}
-
-// Función auxiliar para resetear estado tras guardar
-function limpiarFormularioCompleto() {
-    hrvMedido = null;
-    bpmMedido = null;
-    
-    if (document.getElementById('inputHorasSueno')) document.getElementById('inputHorasSueno').value = '';
-    if (document.getElementById('selectCalidadSueno')) document.getElementById('selectCalidadSueno').value = '0';
-    
-    // Reset visual de métricas cardio
-    if (document.getElementById('displayHRV')) document.getElementById('displayHRV').innerText = '-';
-    if (document.getElementById('displayBPM')) document.getElementById('displayBPM').innerText = '-';
-    
-    window.location.reload(); // Opcional: recarga limpia para asegurar estado cero
-    }
-}
     </script>
 </body>
 </html>
