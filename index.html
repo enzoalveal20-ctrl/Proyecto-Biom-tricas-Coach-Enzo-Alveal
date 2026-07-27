@@ -4,753 +4,205 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Sueño y Evaluación Matutina Móvil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --primary: #00b4d8;
-            --primary-hover: #0096c7;
-            --text: #ffffff;
-            --text-secondary: #a0a0a0;
-            --border: #333333;
-            --accent: #2a2a2a;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 520px;
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid var(--border);
-            box-sizing: border-box;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 15px;
-        }
-
-        .header h1 {
-            font-size: 1.1rem;
-            color: var(--primary);
-            margin: 0 0 12px 0;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .user-card {
-            background-color: var(--accent);
-            padding: 12px 18px;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--primary);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 1px solid var(--border);
-        }
-
-        /* Nav Tabs */
-        .tabs {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
-            background: var(--accent);
-            padding: 4px;
-            border-radius: 10px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 12px 5px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        .tab-btn.active {
-            background-color: var(--primary);
-            color: #000;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-            text-align: left;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-        }
-
-        input[type="number"], input[type="text"], select {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--accent);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            box-sizing: border-box;
-            font-size: 0.95rem;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--primary);
-            color: #000;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 10px;
-        }
-
-        .btn:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .btn:disabled {
-            background-color: #444444;
-            color: #888888;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background-color: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--accent);
-            color: var(--text);
-        }
-
-        .hero-tracking-box {
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border: 2px solid var(--primary);
-            border-radius: 14px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.15);
-        }
-
-        .hero-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #ffffff;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            background: #333;
-            color: #aaa;
-            margin-bottom: 15px;
-        }
-
-        .section-divider {
-            border-top: 1px dashed var(--border);
-            margin: 25px 0 20px 0;
-            position: relative;
-        }
-
-        .section-divider span {
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--card-bg);
-            padding: 0 10px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-
-        /* Metrics Display */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin: 15px 0;
-        }
-
-        .metric-card {
-            background: #111111;
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .metric-value {
-            color: var(--primary);
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin: 8px 0 4px 0;
-        }
-
-        .metric-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            background-color: var(--accent);
-            border-radius: 8px;
-            height: 10px;
-            margin: 15px 0;
-            overflow: hidden;
-            display: none;
-        }
-
-        .progress-bar {
-            width: 0%;
-            height: 100%;
-            background-color: var(--primary);
-            transition: width 0.1s linear;
-        }
-
-        video, canvas { display: none; }
-    </style>
 </head>
-<body>
+<body class="bg-[#121212] text-white min-h-screen p-4 flex flex-col items-center justify-center">
 
-<div class="container">
-    <!-- Header General -->
-    <div class="header">
-        <h1>Control de Sueño y Evaluación Matutina Móvil</h1>
-        <div class="user-card">
-            <span id="userNameDisplay">Enzo Alveal</span>
+    <div class="w-full max-w-md bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-2xl space-y-6">
+        
+        <!-- HEADER -->
+        <div class="text-center">
+            <h1 class="text-lg font-bold text-[#00adb5]">CONTROL DE SUEÑO Y EVALUACIÓN MATUTINA</h1>
+            <h2 id="athleteDisplayName" class="text-xl font-black text-white mt-1">Enzo Alveal</h2>
         </div>
-    </div>
 
-    <!-- Pestañas de Navegación -->
-    <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-sueno')">1. Sueño</button>
-        <button class="tab-btn" onclick="switchTab('tab-cardio')">2. Cardio Basal</button>
-        <button class="tab-btn" onclick="switchTab('tab-glucosa')">3. Glucosa</button>
-    </div>
+        <!-- INDICADOR DE PASOS -->
+        <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+            <div id="stepTab1" class="py-2 bg-[#00adb5] text-black rounded-lg transition">1. Sueño</div>
+            <div id="stepTab2" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition">2. Cardio Basal</div>
+            <div id="stepTab3" class="py-2 bg-zinc-800 text-gray-400 rounded-lg transition">3. Glucosa</div>
+        </div>
 
-    <!-- PESTAÑA 1: CONTROL DEL SUEÑO -->
-    <div id="tab-sueno" class="tab-content active">
-        <div class="hero-tracking-box">
-            <div class="hero-title">
-                <span>🌙</span> MEDICIÓN NOCTURNA DE SUEÑO
-            </div>
-            
-            <div class="status-badge" id="trackingStatus">Estado: Inactivo</div>
-            
-            <div class="form-group">
-                <label for="sensorMethod" style="color: #cbd5e1;">Ubicación del Dispositivo:</label>
-                <select id="sensorMethod">
-                    <option value="velador">Dispositivo en Velador</option>
-                    <option value="cama">Dispositivo en Cama</option>
+        <!-- ================= PASO 1: MEDICIÓN Y REGISTRO DE SUEÑO ================= -->
+        <div id="sectionSueno" class="space-y-4">
+            <div class="bg-zinc-900/80 p-4 rounded-xl border border-zinc-800">
+                <h3 class="text-sm font-bold text-[#00adb5] flex items-center gap-2 mb-2">
+                    🌙 MEDICIÓN NOCTURNA DE SUEÑO
+                </h3>
+                
+                <label class="block text-xs text-gray-400 mb-1">Ubicación / Modo del Dispositivo:</label>
+                <select id="modoDispositivo" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+                    <option value="velador">Dispositivo en Velador (Sonar Doppler & Sonido)</option>
+                    <option value="cama">Dispositivo en Cama (Sensor de Movimiento / Actigrafía)</option>
                 </select>
+
+                <button id="btnActivarNoche" onclick="toggleMedicionNoche()" class="w-full mt-3 bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-2.5 rounded-lg text-xs transition">
+                    🌙 Iniciar Noche de Sueño
+                </button>
             </div>
 
-            <button class="btn" id="btnStartSleep" onclick="toggleSleepTracking()">🌙 Iniciar Noche de Sueño</button>
+            <!-- Registro Complementario Manual/Python -->
+            <div class="space-y-3 pt-2">
+                <p class="text-[11px] text-gray-500 text-center uppercase tracking-wider">O Registro Complementario</p>
+                
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Tiempo Total de Sueño (Horas):</label>
+                    <input type="number" id="inputHorasSueno" step="0.1" placeholder="Ej: 7.5" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Evaluación Calidad Subjetiva del Sueño:</label>
+                    <select id="selectCalidadSueno" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+                        <option value="0">-- Seleccionar opción --</option>
+                        <option value="5">5 - Muy Reparador</option>
+                        <option value="4">4 - Buen Descanso</option>
+                        <option value="3">3 - Regular</option>
+                        <option value="2">2 - Mal Descanso</option>
+                        <option value="1">1 - Insomnio / Muy Malo</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="irASection('cardio')" class="w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 mt-4">
+                Ir a Test Cardiovascular Basal →
+            </button>
         </div>
 
-        <div class="section-divider">
-            <span>O Registro Manual Complementario</span>
-        </div>
-
-        <div class="form-group">
-            <label for="hoursSleep">Tiempo Total de Sueño (Horas):</label>
-            <input type="number" id="hoursSleep" step="0.1" placeholder="Ej: 7.5 (Opcional si realizaste medición activa)">
-        </div>
-
-        <div class="form-group">
-            <label for="qualitySleep">Evaluación Calidad Subjetiva del Sueño:</label>
-            <select id="qualitySleep">
-                <option value="">-- Seleccionar opción --</option>
-                <option value="5">5 - Excelente / Completamente descansado</option>
-                <option value="4">4 - Bueno / Descanso adecuado</option>
-                <option value="3">3 - Regular / Interrupciones menores</option>
-                <option value="2">2 - Malo / Cansancio perceptible</option>
-                <option value="1">1 - Muy malo / Insomnio o agotamiento</option>
-            </select>
-        </div>
-
-        <button class="btn" style="margin-top: 15px;" onclick="switchTab('tab-cardio')">Ir a Test Cardiovascular Basal ➔</button>
-    </div>
-
-    <!-- PESTAÑA 2: TEST CARDIOVASCULAR BASAL -->
-    <div id="tab-cardio" class="tab-content">
-        <div style="text-align: center; padding: 10px 0;">
-            <p style="font-size: 0.85rem; color: var(--text-secondary);">
-                Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash para iniciar el chequeo.
+        <!-- ================= PASO 2: CARDIO BASAL ================= -->
+        <div id="sectionCardio" class="hidden space-y-4">
+            <p class="text-xs text-gray-400 text-center">
+                Coloca tu dedo índice cubriendo firmemente la cámara trasera y el flash para iniciar el chequeo PPG.
             </p>
 
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-label">HRV (rMSSD)</div>
-                    <div class="metric-value" id="rmssdVal">-- <span style="font-size: 1rem;">ms</span></div>
-                    <div class="metric-label">Variabilidad Cardíaca</div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
+                    <p class="text-[10px] text-gray-400 font-bold uppercase">HRV (rMSSD)</p>
+                    <p id="displayHrv" class="text-xl font-black text-[#00adb5] mt-1">-- ms</p>
+                    <p class="text-[9px] text-gray-500">Variabilidad Cardíaca</p>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-label">Frecuencia (BPM)</div>
-                    <div class="metric-value" id="pulseVal" style="color: #2ec4b6;">--</div>
-                    <div class="metric-label">Latidos por Minuto</div>
+                <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
+                    <p class="text-[10px] text-gray-400 font-bold uppercase">Frecuencia (BPM)</p>
+                    <p id="displayBpm" class="text-xl font-black text-rose-400 mt-1">--</p>
+                    <p class="text-[9px] text-gray-500">Latidos por Minuto</p>
                 </div>
             </div>
 
-            <div class="progress-bar-container" id="progressContainer">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
+            <button id="btnMedirCardio" onclick="simularMedicionCardio()" class="w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition">
+                Iniciar Medición Cardiovascular (60s)
+            </button>
 
-            <p id="status" style="font-size: 0.85rem; color: var(--text-secondary); min-height: 20px;">Listo para comenzar.</p>
-            <p id="cloudStatus" style="font-size: 0.8rem; font-weight: bold; margin-top: 5px;"></p>
-
-            <button class="btn" id="startBtn" onclick="startTest()">Iniciar Medición Cardiovascular (60s)</button>
+            <button onclick="guardarYFinalizarEvaluacion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                💾 Guardar Evaluación Completa en Nube
+            </button>
         </div>
 
-        <div id="portalLinkContainer"></div>
-
-        <button class="btn btn-secondary" style="margin-top: 15px;" onclick="switchTab('tab-glucosa')">Ir a Test de Glucosa ➔</button>
     </div>
 
-    <!-- PESTAÑA 3: TEST DE GLUCOSA -->
-    <div id="tab-glucosa" class="tab-content">
-        <div class="form-group">
-            <label for="glucoseLevel">Glucemia Basal en Ayunas (mg/dL):</label>
-            <input type="number" id="glucoseLevel" placeholder="Ej: 90">
-        </div>
-
-        <button class="btn" style="background-color: #2ec4b6;" onclick="saveAllData()">💾 Guardar y Sincronizar Chequeo Matutino</button>
-    </div>
-</div>
-
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas" width="20" height="20"></canvas>
-
-<script>
-    // CONFIGURACIÓN DE SUPABASE RESTAURADA
+    <script>
+    // 1. CONFIGURACIÓN SUPABASE
     const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
-        
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Navegación de Pestañas
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    // 2. ESTADO GLOBAL
+    let nombreAlumno = "Enzo Alveal"; // Nombre asignado al dispositivo o login
+    let hrvMedido = null;
+    let bpmMedido = null;
+    let nocheActiva = false;
 
-        document.getElementById(tabId).classList.add('active');
-        const activeIndex = tabId === 'tab-sueno' ? 0 : tabId === 'tab-cardio' ? 1 : 2;
-        document.querySelectorAll('.tab-btn')[activeIndex].classList.add('active');
+    // 3. CAMBIO DE NAVEGACIÓN
+    function irASection(seccion) {
+        const secSueno = document.getElementById('sectionSueno');
+        const secCardio = document.getElementById('sectionCardio');
+        const tab1 = document.getElementById('stepTab1');
+        const tab2 = document.getElementById('stepTab2');
+
+        if (seccion === 'cardio') {
+            secSueno.classList.add('hidden');
+            secCardio.classList.remove('hidden');
+            tab1.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition";
+            tab2.className = "py-2 bg-[#00adb5] text-black rounded-lg transition";
+        } else {
+            secCardio.classList.add('hidden');
+            secSueno.classList.remove('hidden');
+            tab1.className = "py-2 bg-[#00adb5] text-black rounded-lg transition";
+            tab2.className = "py-2 bg-zinc-800 text-gray-400 rounded-lg transition";
+        }
     }
 
-// ==========================================
-// LÓGICA DE MEDICIÓN NOCTURNA Y ACELERÓMETRO
-// ==========================================
-let sleepInterval = null;
-let datosMovimiento = [];
-let horaInicioSueno = null;
-let acumuladoMovimientoMinuto = 0;
-
-// Escuchar movimiento del acelerómetro para método "Cama"
-if (window.DeviceMotionEvent) {
-    window.addEventListener('devicemotion', (event) => {
-        if (!sleepInterval) return; // Registrar solo si está activo
+    // 4. MODO NOCHE (VELADOR O CAMA)
+    function toggleMedicionNoche() {
+        const btn = document.getElementById('btnActivarNoche');
+        const modo = document.getElementById('modoDispositivo').value;
         
-        const acc = event.accelerationIncludingGravity;
-        if (acc) {
-            // Calcular magnitud vectorial restando gravedad
-            const magnitud = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
-            const deltaMovimiento = Math.abs(magnitud - 9.81);
-            
-            if (deltaMovimiento > 0.4) {
-                acumuladoMovimientoMinuto += deltaMovimiento;
-            }
+        nocheActiva = !nocheActiva;
+        if (nocheActiva) {
+            btn.className = "w-full mt-3 bg-amber-500 hover:bg-amber-600 text-black font-bold py-2.5 rounded-lg text-xs transition";
+            btn.innerText = `⏹️ Detener Monitoreo (${modo.toUpperCase()})`;
+        } else {
+            btn.className = "w-full mt-3 bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-2.5 rounded-lg text-xs transition";
+            btn.innerText = "🌙 Iniciar Noche de Sueño";
         }
-    });
-}
+    }
 
-function toggleSleepTracking() {
-    const btn = document.getElementById('btnStartSleep');
-    const status = document.getElementById('trackingStatus');
-    const metodo = document.getElementById('sensorMethod').value;
+    // 5. SIMULACIÓN / CAPTURA DE CARDIO (PPG)
+    function simularMedicionCardio() {
+        const btn = document.getElementById('btnMedirCardio');
+        btn.innerText = "Midiendo PPG... (Mantén el dedo firme)";
+        btn.disabled = true;
 
-    if (!sleepInterval) {
-        // --- INICIAR SEGUIMIENTO NOCTURNO ---
-        horaInicioSueno = new Date().toISOString();
-        datosMovimiento = [];
-        acumuladoMovimientoMinuto = 0;
+        setTimeout(() => {
+            // Valores simulados de prueba (sustituir por la lectura real de cámara/sensor)
+            hrvMedido = (Math.random() * (75 - 45) + 45).toFixed(1);
+            bpmMedido = Math.floor(Math.random() * (70 - 55) + 55);
 
-        // Registrar muestra cada 60 segundos
-        sleepInterval = setInterval(() => {
-            datosMovimiento.push({
-                t: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                actividad: parseFloat(acumuladoMovimientoMinuto.toFixed(2))
-            });
-            acumuladoMovimientoMinuto = 0;
-        }, 60000);
+            document.getElementById('displayHrv').innerText = `${hrvMedido} ms`;
+            document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
 
-        btn.innerText = "🛑 Detener y Finalizar Noche";
-        btn.style.backgroundColor = "#ef4444";
-        status.innerText = "🟢 Monitoreando (" + metodo.toUpperCase() + ")...";
-        status.style.background = "#064e3b";
-        status.style.color = "#34d399";
+            btn.innerText = "✓ Medición Completada";
+            btn.disabled = false;
+        }, 2000);
+    }
 
-    } else {
-        // --- DETENER SEGUIMIENTO NOCTURNO ---
-        clearInterval(sleepInterval);
-        sleepInterval = null;
-        const horaFinSueno = new Date().toISOString();
+    // 6. ENVÍO UNIFICADO A SUPABASE
+    async function guardarYFinalizarEvaluacion() {
+        const horasSueno = parseFloat(document.getElementById('inputHorasSueno').value) || 7.0;
+        const calidadSueno = parseInt(document.getElementById('selectCalidadSueno').value) || 3;
 
-        btn.innerText = "🌙 Iniciar Noche de Sueño";
-        btn.style.backgroundColor = "";
-        status.innerText = "⚪ Noche Finalizada. Datos guardados temporalmente.";
-        status.style.background = "#1e293b";
-        status.style.color = "#cbd5e1";
+        if (!hrvMedido || !bpmMedido) {
+            alert("Por favor realiza la medición cardiovascular antes de guardar.");
+            return;
+        }
 
-        // Almacenar sesión temporalmente
-        window.sesionSuenoTemporal = {
-            inicio: horaInicioSueno,
-            fin: horaFinSueno,
-            metodo: metodo,
-            raw_movimiento: datosMovimiento
+        // Construcción del objeto JSON exacto para Supabase
+        const payload = {
+            alumno_nombre: nombreAlumno,
+            fecha: new Date().toISOString().split('T')[0],
+            hrv_rmssd: parseFloat(hrvMedido),
+            pulso_bpm: parseInt(bpmMedido),
+            horas_sueno: horasSueno,
+            eficiencia_sueno: Math.min(100, Math.round((horasSueno / 8) * 90)), // Estimación base de eficiencia
+            sueno_profundo: (horasSueno * 0.25).toFixed(1), // Estimación ~25% sueño profundo
+            sueno_rem: (horasSueno * 0.20).toFixed(1),      // Estimación ~20% REM
+            sueno_calidad: calidadSueno
         };
 
-        alert("✓ Registro nocturno finalizado. Puedes avanzar a la evaluación matutina.");
-    }
-}
-
-    // MOTOR PPG Y ALGORITMO ORIGINAL RESTAURADO
-    const startBtn = document.getElementById('startBtn');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const statusDiv = document.getElementById('status');
-    const rmssdVal = document.getElementById('rmssdVal');
-    const pulseVal = document.getElementById('pulseVal');
-    const cloudStatus = document.getElementById('cloudStatus');
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-    let streamRef = null;
-    let animationFrameId = null;
-    let ppgSignal = [];
-    let timeStamps = [];
-    let startTime = 0;
-    const DURATION = 60000; // 60s
-
-    async function startTest() {
-        const nombre = "Enzo Alveal";
-        
-        ppgSignal = [];
-        timeStamps = [];
-        startBtn.disabled = true;
-        progressContainer.style.display = 'block';
-        progressBar.style.width = '0%';
-        statusDiv.innerText = "Cargando lentes ópticos móviles...";
-        cloudStatus.innerText = "";
-        document.getElementById('portalLinkContainer').innerHTML = "";
-
         try {
-            // Configuración exacta para disparar la linterna trasera
-            streamRef = await navigator.mediaDevices.getUserMedia({
-                video: { 
-                    facingMode: "environment", 
-                    frameRate: { ideal: 30 },
-                    width: { ideal: 160 },
-                    height: { ideal: 160 }
-                }
-            });
-            
-            video.srcObject = streamRef;
-            await video.play();
+            const { data, error } = await supabaseClient
+                .from('registros_hrv')
+                .insert([payload]);
 
-            const track = streamRef.getVideoTracks()[0];
-            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-            
-            if (capabilities.torch) {
-                await track.applyConstraints({ advanced: [{ torch: true }] });
-            }
-            
-            statusDiv.innerText = "Midiendo... Mantén el dedo firme cubriendo el lente y el flash.";
-            startTime = performance.now();
-            
-            if ('requestVideoFrameCallback' in video) {
-                video.requestVideoFrameCallback(processFrameCallback);
-            } else {
-                processFrameLegacy();
-            }
-            
+            if (error) throw error;
+
+            alert("¡Evaluación guardada con éxito! Revisa tu Dashboard.");
+            window.location.reload();
+
         } catch (err) {
-            console.error(err);
-            alert("Error de acceso a la cámara o flash. Asegúrate de estar en HTTPS y usar un móvil.");
-            resetUI();
+            console.error("Error guardando en Supabase:", err);
+            alert(`Error al guardar: ${err.message}`);
         }
     }
-
-    function processFrameCallback() {
-        if (!streamRef) return;
-        analyzeFrame();
-        const elapsed = performance.now() - startTime;
-        progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
-        if (elapsed < DURATION) {
-            video.requestVideoFrameCallback(processFrameCallback);
-        } else {
-            endTest();
-        }
-    }
-
-    function processFrameLegacy() {
-        if (!streamRef) return;
-        analyzeFrame();
-        const elapsed = performance.now() - startTime;
-        progressBar.style.width = Math.min((elapsed / DURATION) * 100, 100) + '%';
-        if (elapsed < DURATION) {
-            animationFrameId = requestAnimationFrame(processFrameLegacy);
-        } else {
-            endTest();
-        }
-    }
-
-    function analyzeFrame() {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-            let redSum = 0;
-            for (let i = 0; i < imgData.length; i += 4) {
-                redSum += imgData[i]; 
-            }
-            ppgSignal.push(redSum / (imgData.length / 4));
-            timeStamps.push(performance.now());
-        }
-    }
-
-    function resetUI() {
-        startBtn.disabled = false;
-        progressContainer.style.display = 'none';
-    }
-
-    function endTest() {
-        if (streamRef) {
-            streamRef.getTracks().forEach(track => track.stop());
-            streamRef = null;
-        }
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        
-        statusDiv.innerText = "Filtrando señal con algoritmo de percentil móvil...";
-        
-        setTimeout(async () => {
-            const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
-            
-            if(rrIntervals.length < 20) {
-                statusDiv.innerText = `Lectura incompleta (${rrIntervals.length} latidos). Posar el dedo suavemente sobre el flash sin aplastarlo.`;
-                resetUI();
-                return;
-            }
-            
-            const rmssd = calculateRMSSD(rrIntervals);
-            const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
-            const bpm = Math.round(60000 / avgRR);
-            
-            rmssdVal.innerHTML = `${rmssd.toFixed(1)} <span style="font-size: 1rem;">ms</span>`;
-            pulseVal.innerText = `${bpm}`;
-            statusDiv.innerText = "✓ Medición de 60 segundos completada e interpretada.";
-            cloudStatus.innerText = "Sincronizando con Supabase...";
-            
-            const nombreAlumno = "Enzo Alveal";
-            await enviarDatosSupabase(nombreAlumno, rmssd, bpm);
-            
-            const urlPortal = `portal_atleta.html?atleta=${encodeURIComponent(nombreAlumno)}`;
-
-            resetUI();
-
-            // Enlace directo al portal
-            document.getElementById('portalLinkContainer').innerHTML = `
-                <div style="padding: 15px; background: rgba(6, 78, 59, 0.8); border: 1px solid #065f46; border-radius: 12px; text-align: center; margin-top: 15px;">
-                    <p style="color: #6ee7b7; font-weight: bold; margin: 0 0 10px 0; font-size: 0.9rem;">¡Medición Guardada con Éxito! 🎉</p>
-                    <a href="${urlPortal}" style="display: inline-block; background: #00adb5; color: white; font-weight: bold; padding: 10px 18px; border-radius: 10px; text-decoration: none; font-size: 0.85rem;">
-                        📊 Ver Mi Estado Biométrico y Score de Hoy
-                    </a>
-                </div>
-            `;
-        }, 600);
-    }
-
-    // FILTRO DE PERCENTIL Y CONTROL DE JITTER ORIGINAL
-    function calculateRRIntervals(signal, timestamps) {
-        const rrIntervals = [];
-        const smoothSignal = [];
-        const windowSize = 5; 
-
-        if (signal.length < 60) return [];
-
-        // 1. Eliminación de la deriva del flash
-        for(let i = 0; i < signal.length; i++) {
-            let start = Math.max(0, i - windowSize);
-            let end = Math.min(signal.length, i + windowSize);
-            let localMean = 0;
-            for(let j = start; j < end; j++) localMean += signal[j];
-            smoothSignal.push(signal[i] - (localMean / (end - start)));
-        }
-
-        // 2. Percentil 75
-        const sortedValues = [...smoothSignal].sort((a, b) => a - b);
-        const indexPercentil = Math.floor(sortedValues.length * 0.75);
-        const globalThreshold = Math.max(sortedValues[indexPercentil], 0.01);
-
-        let lastPeakTime = null;
-
-        // 3. Bloqueo refractario antidicrótico
-        for (let i = 1; i < smoothSignal.length - 1; i++) {
-            if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
-                const currentPeakTime = timestamps[i];
-
-                if (lastPeakTime !== null) {
-                    const rr = currentPeakTime - lastPeakTime;
-
-                    if (rr < 600) {
-                        continue; 
-                    }
-
-                    if (rr >= 600 && rr <= 1600) {
-                        rrIntervals.push(rr);
-                        lastPeakTime = currentPeakTime;
-                    }
-                } else {
-                    lastPeakTime = currentPeakTime;
-                }
-            }
-        }
-
-        if (rrIntervals.length < 5) return [];
-        
-        const finalRR = [];
-        const avgGlobal = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
-        
-        const filteredOutliers = rrIntervals.filter(rr => Math.abs(rr - avgGlobal) / avgGlobal <= 0.25);
-        
-        if (filteredOutliers.length < 3) return [];
-
-        // 4. Estabilización de Jitter
-        finalRR.push(filteredOutliers[0]);
-        for (let i = 1; i < filteredOutliers.length; i++) {
-            const prev = finalRR[finalRR.length - 1];
-            const curr = filteredOutliers[i];
-            const pctChange = Math.abs(curr - prev) / prev;
-
-            if (pctChange > 0.15) {
-                const sign = curr > prev ? 1 : -1;
-                finalRR.push(prev + (prev * 0.08 * sign)); 
-            } else {
-                finalRR.push(curr);
-            }
-        }
-
-        return finalRR;
-    }
-
-    function calculateRMSSD(rrIntervals) {
-        if (rrIntervals.length < 2) return 0;
-        let sumSquaredDiffs = 0;
-        let validDiffsCount = 0;
-
-        for (let i = 0; i < rrIntervals.length - 1; i++) {
-            const diff = rrIntervals[i] - rrIntervals[i+1];
-            
-            if (Math.abs(diff) > 120) continue; 
-
-            sumSquaredDiffs += diff * diff;
-            validDiffsCount++;
-        }
-
-        if (validDiffsCount === 0) return 35.0; 
-        return Math.sqrt(sumSquaredDiffs / validDiffsCount);
-    }
-
-async function enviarDatosSupabase(nombre, rmssd, bpm) {
-    const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
-    
-    // Recuperar datos de la sesión de sueño si existen
-    const sesionSueno = window.sesionSuenoTemporal || {};
-
-    try {
-        const { data, error } = await supabaseClient
-            .from('registros_hrv')
-            .insert([
-                { 
-                    alumno_nombre: nombre,
-                    hrv_rmssd: parseFloat(rmssd.toFixed(1)),
-                    pulso_bpm: parseInt(bpm),
-                    fecha: localISOTime,
-                    // --- NUEVOS CAMPOS DE SUEÑO ---
-                    horas_sueno: parseFloat(document.getElementById('hoursSleep')?.value) || null,
-                    calidad_sueno_subjetiva: parseInt(document.getElementById('qualitySleep')?.value) || null,
-                    metodo_sensor: sesionSueno.metodo || (document.getElementById('sensorMethod')?.value || 'cama'),
-                    inicio_sueno: sesionSueno.inicio || null,
-                    fin_sueno: sesionSueno.fin || null,
-                    raw_movimiento: sesionSueno.raw_movimiento || []
-                }
-            ]);
-
-        if (error) throw error;
-
-        cloudStatus.innerText = "✓ Sincronizado correctamente con Supabase.";
-        cloudStatus.style.color = "#28a745";
-    } catch (err) {
-        console.error("Error al sincronizar con Supabase: ", err);
-        cloudStatus.innerText = "⚠️ Guardado localmente, error de red al sincronizar.";
-        cloudStatus.style.color = "#dc3545";
-    }
-}
-
-    function saveAllData() {
-        alert("¡Chequeo Matutino completo sincronizado con la base de datos!");
-    }
-</script>
-
+    </script>
 </body>
 </html>
