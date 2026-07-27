@@ -137,14 +137,16 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Estado / Tendencia de Glucosa:</label>
-                    <select id="selectTendenciaGlucosa" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#00adb5]">
-                        <option value="Ayuno Estricto">Ayuno Estricto (>8h)</option>
-                        <option value="Ayuno Ligero">Ayuno Ligero (6-8h)</option>
-                        <option value="Estable">Estable</option>
-                        <option value="Post-Entreno">Post-Entreno</option>
-                    </select>
-                </div>
+    <label class="block text-xs text-gray-400 mb-1">Estado / Contexto de Glucosa:</label>
+    <select id="selectTendenciaGlucosa" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#00adb5]">
+        <option value="Ayuno Estricto">Ayuno Estricto (>8h)</option>
+        <option value="Ayuno Ligero">Ayuno Ligero (6-8h)</option>
+        <option value="Posprandial (1h)">Posprandial (1h post-comida)</option>
+        <option value="Posprandial (2h)">Posprandial (2h post-comida)</option>
+        <option value="Estable">Estable (Reposo general)</option>
+        <option value="Post-Entreno">Post-Entreno</option>
+    </select>
+</div>
             </div>
 
             <button onclick="guardarYFinalizarEvaluacion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 mt-2 shadow-lg">
