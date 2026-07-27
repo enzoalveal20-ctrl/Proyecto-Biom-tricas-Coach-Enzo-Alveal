@@ -360,42 +360,44 @@
     }
 
     // LISTA SUEÑO
-    function renderAthletesListSueno() {
-        const listContainer = document.getElementById('athletesListSueno');
-        if (!listContainer) return;
-        listContainer.innerHTML = '';
+function renderAthletesListSueno() {
+    const listContainer = document.getElementById('athletesListSueno');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
 
-        const athleteNames = Object.keys(athletesData);
-        if(athleteNames.length === 0) {
-            listContainer.innerHTML = `<p class="text-gray-500 text-center py-4 text-xs">No hay alumnos registrados.</p>`;
-            return;
-        }
-
-        athleteNames.forEach(name => {
-            const records = athletesData[name];
-            const latestRecord = records[records.length - 1];
-            
-            const duracion = latestRecord.horas_sueno || latestRecord.sueno_horas || 0;
-            const eficiencia = latestRecord.eficiencia_sueno || latestRecord.sueno_eficiencia || 0;
-            const calidad = latestRecord.sueno_calidad || 0;
-
-            const activeStyle = (name === currentSelectedAthlete) ? "border-[#00adb5] bg-[#2d2d2d]" : "border-gray-800 bg-[#252525]";
-
-            const itemHtml = `
-                <div onclick="selectAthlete('${name}')" class="flex justify-between items-center p-3 rounded-lg hover:bg-[#2d2d2d] transition cursor-pointer border-l-4 ${activeStyle}">
-                    <div>
-                        <h3 class="font-bold text-sm text-white">${name}</h3>
-                        <p class="text-xs text-gray-400">Eficiencia: ${eficiencia}%</p>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-sm font-bold block text-indigo-400">${duracion} hrs</span>
-                        <span class="text-[10px] text-amber-400">Calidad: ${calidad}/5</span>
-                    </div>
-                </div>
-            `;
-            listContainer.innerHTML += itemHtml;
-        });
+    const athleteNames = Object.keys(athletesData);
+    if(athleteNames.length === 0) {
+        listContainer.innerHTML = `<p class="text-gray-500 text-center py-4 text-xs">No hay alumnos registrados.</p>`;
+        return;
     }
+
+    athleteNames.forEach(name => {
+        const records = athletesData[name];
+        // Buscamos el último registro que realmente tenga datos de sueño ingresados
+        const latestRecord = records[records.length - 1];
+        
+        // Mapeo flexible de variables
+        const duracion = latestRecord.horas_sueno ?? latestRecord.sueno_horas ?? latestRecord.duracion_sueno ?? 0;
+        const eficiencia = latestRecord.eficiencia_sueno ?? latestRecord.sueno_eficiencia ?? 0;
+        const calidad = latestRecord.sueno_calidad ?? latestRecord.calidad_sueno ?? 0;
+
+        const activeStyle = (name === currentSelectedAthlete) ? "border-[#00adb5] bg-[#2d2d2d]" : "border-gray-800 bg-[#252525]";
+
+        const itemHtml = `
+            <div onclick="selectAthlete('${name}')" class="flex justify-between items-center p-3 rounded-lg hover:bg-[#2d2d2d] transition cursor-pointer border-l-4 ${activeStyle}">
+                <div>
+                    <h3 class="font-bold text-sm text-white">${name}</h3>
+                    <p class="text-xs text-gray-400">Eficiencia: ${eficiencia}%</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-sm font-bold block text-indigo-400">${duracion} hrs</span>
+                    <span class="text-[10px] text-amber-400">Calidad: ${calidad}/5</span>
+                </div>
+            </div>
+        `;
+        listContainer.innerHTML += itemHtml;
+    });
+}
 
     // SELECCIÓN DE ATLETA
     function selectAthlete(name) {
@@ -485,64 +487,68 @@
     }
 
     // VISTA SUEÑO
-    function renderSuenoView() {
-        if (!currentSelectedAthlete || !athletesData[currentSelectedAthlete]) return;
+function renderSuenoView() {
+    if (!currentSelectedAthlete || !athletesData[currentSelectedAthlete]) return;
 
-        const records = athletesData[currentSelectedAthlete];
-        const latestRecord = records[records.length - 1];
+    const records = athletesData[currentSelectedAthlete];
+    const latestRecord = records[records.length - 1];
 
-        const horasTotales = latestRecord.horas_sueno || latestRecord.sueno_horas || 0;
-        const eficiencia = latestRecord.eficiencia_sueno || latestRecord.sueno_eficiencia || 0;
-        const sws = latestRecord.sueno_profundo || 0;
-        const rem = latestRecord.sueno_rem || 0;
-        const ligero = Math.max(0, (horasTotales - sws - rem)).toFixed(1);
-        const calidadSubjetiva = latestRecord.sueno_calidad || 0;
+    // Mapeo flexible de variables
+    const horasTotales = Number(latestRecord.horas_sueno ?? latestRecord.sueno_horas ?? latestRecord.duracion_sueno ?? 0);
+    const eficiencia = Number(latestRecord.eficiencia_sueno ?? latestRecord.sueno_eficiencia ?? 0);
+    const sws = Number(latestRecord.sueno_profundo ?? latestRecord.profundo_hrs ?? 0);
+    const rem = Number(latestRecord.sueno_rem ?? latestRecord.rem_hrs ?? 0);
+    const calidadSubjetiva = latestRecord.sueno_calidad ?? latestRecord.calidad_sueno ?? 0;
+    
+    const ligero = Math.max(0, (horasTotales - sws - rem)).toFixed(1);
 
-        document.getElementById('suenoAthleteName').innerText = currentSelectedAthlete;
-        document.getElementById('metricSuenoDuracion').innerText = `${horasTotales} hrs`;
-        document.getElementById('metricSuenoEficiencia').innerText = `${eficiencia}%`;
-        document.getElementById('metricSuenoProfundo').innerText = `${sws} hrs`;
-        document.getElementById('suenoSubjetivoBadge').innerText = `CALIDAD SUBJETIVA: ${calidadSubjetiva}/5`;
+    document.getElementById('suenoAthleteName').innerText = currentSelectedAthlete;
+    document.getElementById('metricSuenoDuracion').innerText = `${horasTotales} hrs`;
+    document.getElementById('metricSuenoEficiencia').innerText = `${eficiencia}%`;
+    document.getElementById('metricSuenoProfundo').innerText = `${sws} hrs`;
+    document.getElementById('suenoSubjetivoBadge').innerText = `CALIDAD SUBJETIVA: ${calidadSubjetiva}/5`;
 
-        const ctxDonut = document.getElementById('suenoDonutChart').getContext('2d');
-        if (suenoDonutInstance) suenoDonutInstance.destroy();
-        
-        suenoDonutInstance = new Chart(ctxDonut, {
-            type: 'doughnut',
-            data: {
-                labels: ['Profundo (SWS)', 'Ligero', 'REM'],
-                datasets: [{
-                    data: [parseFloat(sws), parseFloat(ligero), parseFloat(rem)],
-                    backgroundColor: ['#a855f7', '#3b82f6', '#06b6d4'],
-                    borderWidth: 0
-                }]
+    // Gráfico de Torta (Arquitectura)
+    const ctxDonut = document.getElementById('suenoDonutChart').getContext('2d');
+    if (suenoDonutInstance) suenoDonutInstance.destroy();
+    
+    suenoDonutInstance = new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+            labels: ['Profundo (SWS)', 'Ligero', 'REM'],
+            datasets: [{
+                data: [sws, parseFloat(ligero), rem],
+                backgroundColor: ['#a855f7', '#3b82f6', '#06b6d4'],
+                borderWidth: 0
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    // Gráfico de Barras (Histórico)
+    const ctxBar = document.getElementById('suenoBarChart').getContext('2d');
+    if (suenoBarInstance) suenoBarInstance.destroy();
+
+    const suenoLabels = records.slice(-7).map(r => formatearFechaCronologica(r.fecha).split(' ')[0]);
+    const suenoValues = records.slice(-7).map(r => Number(r.horas_sueno ?? r.sueno_horas ?? 0));
+
+    suenoBarInstance = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: suenoLabels,
+            datasets: [{ label: 'Horas Dormidas', data: suenoValues, backgroundColor: '#00adb5', borderRadius: 4 }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' }, beginAtZero: true },
+                x: { grid: { display: false }, ticks: { color: '#888' } }
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-
-        const ctxBar = document.getElementById('suenoBarChart').getContext('2d');
-        if (suenoBarInstance) suenoBarInstance.destroy();
-
-        const suenoLabels = records.slice(-7).map(r => formatearFechaCronologica(r.fecha).split(' ')[0]);
-        const suenoValues = records.slice(-7).map(r => r.horas_sueno || r.sueno_horas || 0);
-
-        suenoBarInstance = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: suenoLabels,
-                datasets: [{ label: 'Horas Dormidas', data: suenoValues, backgroundColor: '#00adb5', borderRadius: 4 }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                    x: { grid: { display: false }, ticks: { color: '#888' } }
-                },
-                plugins: { legend: { display: false } }
-            }
-        });
-    }
+            plugins: { legend: { display: false } }
+        }
+    });
+}
 
     function formatearFechaCronologica(fechaStr) {
         try {
