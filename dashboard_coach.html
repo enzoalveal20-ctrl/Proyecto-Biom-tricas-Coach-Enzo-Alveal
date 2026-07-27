@@ -32,6 +32,34 @@
                 🌙 Arquitectura de Sueño
             </button>
         </div>
+        <!-- Botón de la pestaña -->
+<button id="tabGlucosaBtn" onclick="switchTab('glucosa')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2">
+    🩸 Control Glucémico
+</button>
+
+<!-- Contenido de la pestaña -->
+<div id="tabGlucosa" class="tab-content hidden p-6 bg-[#181818] rounded-b-xl border border-gray-800">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
+            <span class="text-xs text-gray-400 font-bold uppercase">Glucosa Basal (Última)</span>
+            <div id="coachGlucosaVal" class="text-3xl font-extrabold text-white mt-1">-- mg/dL</div>
+            <span id="coachGlucosaTendencia" class="text-xs text-gray-400">Tendencia: --</span>
+        </div>
+        <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
+            <span class="text-xs text-gray-400 font-bold uppercase">Variabilidad (CV%)</span>
+            <div id="coachGlucosaCV" class="text-3xl font-extrabold text-white mt-1">-- %</div>
+            <span class="text-xs text-gray-400">Meta: < 15%</span>
+        </div>
+        <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
+            <span class="text-xs text-gray-400 font-bold uppercase">Estado Metabólico</span>
+            <div id="coachGlucosaEstado" class="text-xl font-bold text-emerald-400 mt-2">--</div>
+        </div>
+    </div>
+    
+    <div id="coachGlucosaAlerta" class="hidden p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-sm">
+        <!-- Mensajes de alerta dinámicos -->
+    </div>
+</div>
 
         <!-- ==================== PESTAÑA 1: CARDIO & HRV ==================== -->
         <div id="viewCardio" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
