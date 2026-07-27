@@ -198,9 +198,9 @@
     let currentSelectedAthlete = ""; 
     let currentAnalysisData = null;
 
-    // Helper para detectar la columna del nombre del alumno dinámicamente
+    // Helper para detectar exactamente la columna del nombre del alumno
     function obtenerNombreAlumno(row) {
-        return row.nombre || row.alumno || row.atleta || row.nombre_atleta || row.user || row.usuario || row.name || null;
+        return row.alumno_nombre || row.nombre || row.alumno || row.atleta || null;
     }
 
     // CARGA DE DATOS DESDE SUPABASE
@@ -323,7 +323,7 @@
         
         const athleteNames = Object.keys(athletesData);
         if(athleteNames.length === 0) {
-            listContainer.innerHTML = `<p class="text-amber-400 text-center py-4 text-xs">⚠️ No se encontraron nombres de alumnos en la tabla de Supabase. Revisa las columnas de tu BD.</p>`;
+            listContainer.innerHTML = `<p class="text-amber-400 text-center py-4 text-xs">⚠️ No hay registros con nombres válidos en la tabla.</p>`;
             return;
         }
 
@@ -375,8 +375,8 @@
             const records = athletesData[name];
             const latestRecord = records[records.length - 1];
             
-            const duracion = latestRecord.sueno_horas || latestRecord.horas_sueno || 0;
-            const eficiencia = latestRecord.sueno_eficiencia || 0;
+            const duracion = latestRecord.horas_sueno || latestRecord.sueno_horas || 0;
+            const eficiencia = latestRecord.eficiencia_sueno || latestRecord.sueno_eficiencia || 0;
             const calidad = latestRecord.sueno_calidad || 0;
 
             const activeStyle = (name === currentSelectedAthlete) ? "border-[#00adb5] bg-[#2d2d2d]" : "border-gray-800 bg-[#252525]";
@@ -491,8 +491,8 @@
         const records = athletesData[currentSelectedAthlete];
         const latestRecord = records[records.length - 1];
 
-        const horasTotales = latestRecord.sueno_horas || latestRecord.horas_sueno || 0;
-        const eficiencia = latestRecord.sueno_eficiencia || 0;
+        const horasTotales = latestRecord.horas_sueno || latestRecord.sueno_horas || 0;
+        const eficiencia = latestRecord.eficiencia_sueno || latestRecord.sueno_eficiencia || 0;
         const sws = latestRecord.sueno_profundo || 0;
         const rem = latestRecord.sueno_rem || 0;
         const ligero = Math.max(0, (horasTotales - sws - rem)).toFixed(1);
@@ -524,7 +524,7 @@
         if (suenoBarInstance) suenoBarInstance.destroy();
 
         const suenoLabels = records.slice(-7).map(r => formatearFechaCronologica(r.fecha).split(' ')[0]);
-        const suenoValues = records.slice(-7).map(r => r.sueno_horas || r.horas_sueno || 0);
+        const suenoValues = records.slice(-7).map(r => r.horas_sueno || r.sueno_horas || 0);
 
         suenoBarInstance = new Chart(ctxBar, {
             type: 'bar',
