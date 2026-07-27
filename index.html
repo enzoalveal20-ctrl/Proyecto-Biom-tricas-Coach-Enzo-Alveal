@@ -72,10 +72,10 @@
 <!-- ================= PASO 2: CARDIO BASAL ================= -->
 <div id="sectionCardio" class="hidden space-y-4">
     <p class="text-xs text-gray-400 text-center">
-        Ingresa las mediciones basales capturadas o inicia el chequeo PPG.
+        Realiza la medición de 60s con la cámara o ingresa las métricas manualmente.
     </p>
 
-    <!-- Muestra de métricas (Inician vacías) -->
+    <!-- Muestra de métricas -->
     <div class="grid grid-cols-2 gap-3">
         <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
             <p class="text-[10px] text-gray-400 font-bold uppercase">HRV (rMSSD)</p>
@@ -89,8 +89,19 @@
         </div>
     </div>
 
-    <!-- Inputs Manuales para Datos Reales -->
-    <div class="grid grid-cols-2 gap-3 pt-1">
+    <!-- BOTÓN INICIAR EVALUACIÓN -->
+    <button id="btnMedirCardio" onclick="iniciarMedicionCardio()" class="w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition shadow-lg">
+        🫀 Iniciar Medición Cardiovascular (60s)
+    </button>
+
+    <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-zinc-800"></div>
+        <span class="flex-shrink mx-3 text-[10px] text-gray-500 uppercase tracking-wider">O Ingreso Manual</span>
+        <div class="flex-grow border-t border-zinc-800"></div>
+    </div>
+
+    <!-- Inputs Manuales -->
+    <div class="grid grid-cols-2 gap-3">
         <div>
             <label class="block text-[11px] text-gray-400 mb-1">HRV Real (ms):</label>
             <input type="number" id="inputHrvManual" oninput="actualizarCardioDesdeInput()" placeholder="Ej: 65" class="w-full bg-[#252525] border border-gray-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-[#00adb5]">
@@ -152,7 +163,40 @@
             btn.innerText = "🌙 Iniciar Noche de Sueño";
         }
     }
+// Función para activar el chequeo/temporizador
+function iniciarMedicionCardio() {
+    const btn = document.getElementById('btnMedirCardio');
+    btn.innerText = "⏳ Registrando señal PPG... (Mantén el dedo firme)";
+    btn.disabled = true;
+    btn.classList.add('opacity-75');
 
+    // Aquí irá la captura directa del sensor/cámara cuando esté conectada
+    // Por ahora limpia los campos manuales mientras inicia
+    document.getElementById('inputHrvManual').value = '';
+    document.getElementById('inputBpmManual').value = '';
+}
+
+// Actualización reactiva cuando el atleta escribe manualmente
+function actualizarCardioDesdeInput() {
+    const valHrv = document.getElementById('inputHrvManual').value;
+    const valBpm = document.getElementById('inputBpmManual').value;
+
+    if (valHrv !== "") {
+        hrvMedido = parseFloat(valHrv);
+        document.getElementById('displayHrv').innerText = `${hrvMedido} ms`;
+    } else {
+        hrvMedido = null;
+        document.getElementById('displayHrv').innerText = `-- ms`;
+    }
+
+    if (valBpm !== "") {
+        bpmMedido = parseInt(valBpm);
+        document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
+    } else {
+        bpmMedido = null;
+        document.getElementById('displayBpm').innerText = `-- BPM`;
+    }
+}
 // 5. Actualización reactiva basada en la entrada manual del usuario
 function actualizarCardioDesdeInput() {
     const valHrv = document.getElementById('inputHrvManual').value;
