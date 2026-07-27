@@ -366,20 +366,28 @@ function renderAthletesListSueno() {
     listContainer.innerHTML = '';
 
     const athleteNames = Object.keys(athletesData);
-    if(athleteNames.length === 0) {
+    if (athleteNames.length === 0) {
         listContainer.innerHTML = `<p class="text-gray-500 text-center py-4 text-xs">No hay alumnos registrados.</p>`;
         return;
     }
 
     athleteNames.forEach(name => {
         const records = athletesData[name];
-        // Buscamos el último registro que realmente tenga datos de sueño ingresados
-        const latestRecord = records[records.length - 1];
+        const latestRecord = records[records.length - 1] || {};
         
-        // Mapeo flexible de variables
-        const duracion = latestRecord.horas_sueno ?? latestRecord.sueno_horas ?? latestRecord.duracion_sueno ?? 0;
-        const eficiencia = latestRecord.eficiencia_sueno ?? latestRecord.sueno_eficiencia ?? 0;
-        const calidad = latestRecord.sueno_calidad ?? latestRecord.calidad_sueno ?? 0;
+        // Mapeo exacto según tus columnas de Supabase
+        const duracion = Number(
+            latestRecord.horas_sueno ?? 
+            (latestRecord.duracion_total_min ? latestRecord.duracion_total_min / 60 : 0)
+        ).toFixed(1);
+
+        const eficiencia = Number(
+            latestRecord.eficiencia_sueno ?? 0
+        );
+
+        const calidad = Number(
+            latestRecord.calidad_sueno_subjetiva ?? 0
+        );
 
         const activeStyle = (name === currentSelectedAthlete) ? "border-[#00adb5] bg-[#2d2d2d]" : "border-gray-800 bg-[#252525]";
 
@@ -491,14 +499,18 @@ function renderSuenoView() {
     if (!currentSelectedAthlete || !athletesData[currentSelectedAthlete]) return;
 
     const records = athletesData[currentSelectedAthlete];
-    const latestRecord = records[records.length - 1];
+    const latestRecord = records[records.length - 1] || {};
 
-    // Mapeo flexible de variables
-    const horasTotales = Number(latestRecord.horas_sueno ?? latestRecord.sueno_horas ?? latestRecord.duracion_sueno ?? 0);
-    const eficiencia = Number(latestRecord.eficiencia_sueno ?? latestRecord.sueno_eficiencia ?? 0);
-    const sws = Number(latestRecord.sueno_profundo ?? latestRecord.profundo_hrs ?? 0);
-    const rem = Number(latestRecord.sueno_rem ?? latestRecord.rem_hrs ?? 0);
-    const calidadSubjetiva = latestRecord.sueno_calidad ?? latestRecord.calidad_sueno ?? 0;
+    // Mapeo directo a tus columnas de Supabase
+    const horasTotales = Number(
+        latestRecord.horas_sueno ?? 
+        (latestRecord.duracion_total_min ? latestRecord.duracion_total_min / 60 : 0)
+    ).toFixed(1);
+
+    const eficiencia = Number(latestRecord.eficiencia_sueno ?? 0);
+    const sws = Number(latestRecord.min_profundo ? latestRecord.min_profundo / 60 : (latestRecord.sueno_profundo ?? 0)).toFixed(1);
+    const rem = Number(latestRecord.min_rem ? latestRecord.min_rem / 60 : (latestRecord.sueno_rem ?? 0)).toFixed(1);
+    const calidadSubjetiva = Number(latestRecord.calidad_sueno_subjetiva ?? 0);
     
     const ligero = Math.max(0, (horasTotales - sws - rem)).toFixed(1);
 
@@ -517,7 +529,7 @@ function renderSuenoView() {
         data: {
             labels: ['Profundo (SWS)', 'Ligero', 'REM'],
             datasets: [{
-                data: [sws, parseFloat(ligero), rem],
+                data: [parseFloat(sws), parseFloat(ligero), parseFloat(rem)],
                 backgroundColor: ['#a855f7', '#3b82f6', '#06b6d4'],
                 borderWidth: 0
             }]
@@ -530,7 +542,10 @@ function renderSuenoView() {
     if (suenoBarInstance) suenoBarInstance.destroy();
 
     const suenoLabels = records.slice(-7).map(r => formatearFechaCronologica(r.fecha).split(' ')[0]);
-    const suenoValues = records.slice(-7).map(r => Number(r.horas_sueno ?? r.sueno_horas ?? 0));
+    const suenoValues = records.slice(-7).map(r => Number(
+        r.horas_sueno ?? 
+        (r.duracion_total_min ? r.duracion_total_min / 60 : 0)
+    ));
 
     suenoBarInstance = new Chart(ctxBar, {
         type: 'bar',
