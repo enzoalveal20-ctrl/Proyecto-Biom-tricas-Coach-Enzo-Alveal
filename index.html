@@ -153,23 +153,43 @@
         }
     }
 
-    // 5. SIMULACIÓN / CAPTURA DE CARDIO (PPG)
-    function simularMedicionCardio() {
-        const btn = document.getElementById('btnMedirCardio');
-        btn.innerText = "Midiendo PPG... (Mantén el dedo firme)";
-        btn.disabled = true;
+// 5. Actualización reactiva basada en la entrada manual del usuario
+function actualizarCardioDesdeInput() {
+    const valHrv = document.getElementById('inputHrvManual').value;
+    const valBpm = document.getElementById('inputBpmManual').value;
 
-        setTimeout(() => {
-            hrvMedido = (Math.random() * (75 - 45) + 45).toFixed(1);
-            bpmMedido = Math.floor(Math.random() * (70 - 55) + 55);
-
-            document.getElementById('displayHrv').innerText = `${hrvMedido} ms`;
-            document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
-
-            btn.innerText = "✓ Medición Completada";
-            btn.disabled = false;
-        }, 2000);
+    if (valHrv !== "") {
+        hrvMedido = parseFloat(valHrv);
+        document.getElementById('displayHrv').innerText = `${hrvMedido} ms`;
+    } else {
+        hrvMedido = null;
+        document.getElementById('displayHrv').innerText = `-- ms`;
     }
+
+    if (valBpm !== "") {
+        bpmMedido = parseInt(valBpm);
+        document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
+    } else {
+        bpmMedido = null;
+        document.getElementById('displayBpm').innerText = `-- BPM`;
+    }
+}
+
+// Limpieza total del formulario al guardar o reiniciar
+function limpiarFormularioCompleto() {
+    hrvMedido = null;
+    bpmMedido = null;
+    
+    if (document.getElementById('inputHorasSueno')) document.getElementById('inputHorasSueno').value = '';
+    if (document.getElementById('selectCalidadSueno')) document.getElementById('selectCalidadSueno').value = '0';
+    if (document.getElementById('inputHrvManual')) document.getElementById('inputHrvManual').value = '';
+    if (document.getElementById('inputBpmManual')) document.getElementById('inputBpmManual').value = '';
+    
+    if (document.getElementById('displayHrv')) document.getElementById('displayHrv').innerText = '-- ms';
+    if (document.getElementById('displayBpm')) document.getElementById('displayBpm').innerText = '-- BPM';
+    
+    irASection('sueno');
+}
 
     // 6. ENVÍO UNIFICADO A SUPABASE
     async function guardarYFinalizarEvaluacion() {
