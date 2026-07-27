@@ -166,43 +166,53 @@
     }
 
     // 6. ENVÍO UNIFICADO A SUPABASE
-    async function guardarYFinalizarEvaluacion() {
-        const horasSueno = parseFloat(document.getElementById('inputHorasSueno').value) || 7.0;
-        const calidadSueno = parseInt(document.getElementById('selectCalidadSueno').value) || 3;
-
-        if (!hrvMedido || !bpmMedido) {
-            alert("Por favor realiza la medición cardiovascular antes de guardar.");
-            return;
-        }
-
-        // Construcción del objeto JSON exacto para Supabase
-        const payload = {
-            alumno_nombre: nombreAlumno,
-            fecha: new Date().toISOString().split('T')[0],
-            hrv_rmssd: parseFloat(hrvMedido),
-            pulso_bpm: parseInt(bpmMedido),
-            horas_sueno: horasSueno,
-            eficiencia_sueno: Math.min(100, Math.round((horasSueno / 8) * 90)), // Estimación base de eficiencia
-            sueno_profundo: (horasSueno * 0.25).toFixed(1), // Estimación ~25% sueño profundo
-            sueno_rem: (horasSueno * 0.20).toFixed(1),      // Estimación ~20% REM
-            sueno_calidad: calidadSueno
-        };
-
-        try {
-            const { data, error } = await supabaseClient
-                .from('registros_hrv')
-                .insert([payload]);
-
-            if (error) throw error;
-
-            alert("¡Evaluación guardada con éxito! Revisa tu Dashboard.");
-            window.location.reload();
-
-        } catch (err) {
-            console.error("Error guardando en Supabase:", err);
-            alert(`Error al guardar: ${err.message}`);
-        }
+async function guardarYFinalizarEvaluacion() {
+    if (!hrvMedido || !bpmMedido) {
+        alert("Por favor realiza la medición cardiovascular antes de guardar.");
+        return;
     }
+
+    const inputHoras = document.getElementById('inputHorasSueno').value;
+    const inputCalidad = document.getElementById('selectCalidadSueno').value;
+    const modoUbicacion = document.getElementById('modoDispositivo').value;
+
+    // Payload emparejado EXACTAMENTE con las columnas de tu Supabase
+    const payload = {
+        alumno_nombre: nombreAlumno,                     // text
+        fecha: new Date().toISOString().split('T')[0],   // date
+        hrv_rmssd: parseFloat(hrvMedido),               // float8
+        pulso_bpm: parseInt(bpmMedido),                 // int8
+        metodo_sensor: modoUbicacion                     // text ('velador' o 'cama')
+    };
+
+    // Agregar datos de sueño solo si fueron ingresados o medidos
+    if (inputHoras !== "" && parseFloat(inputHoras) > 0) {
+        const hs = parseFloat(inputHoras);
+        payload.horas_sueno = hs;                         // float8
+        payload.eficiencia_sueno = Math.min(100, Math.round((hs / 8) * 90)); // int8
+    }
+
+    if (inputCalidad !== "0") {
+        payload.calidad_sueno_subjetiva = parseInt(inputCalidad); // int8
+    }
+
+    try {
+        console.log("Enviando a Supabase:", payload);
+
+        const { data, error } = await supabaseClient
+            .from('BiometricasEnzuss_IntervalR-R_Remoto') // Tu tabla exacta
+            .insert([payload]);
+
+        if (error) throw error;
+
+        alert("¡Evaluación guardada exitosamente en la nube!");
+        window.location.reload();
+
+    } catch (err) {
+        console.error("Error guardando en Supabase:", err);
+        alert(`Error al guardar: ${err.message}`);
+    }
+}
     </script>
 </body>
 </html>
