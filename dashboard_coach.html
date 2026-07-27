@@ -23,56 +23,28 @@
             </button>
         </header>
 
-        <!-- NAVEGACIÓN POR PESTAÑAS (TABS) -->
-        <div class="flex border-b border-gray-800 mb-6 gap-2">
-            <button id="tabCardioBtn" onclick="switchTab('cardio')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2">
+        <!-- NAVEGACIÓN POR PESTAÑAS (TABS) ALINEADAS CORRECTAMENTE -->
+        <div class="flex border-b border-gray-800 mb-6 gap-2 overflow-x-auto">
+            <button id="tabCardioBtn" onclick="switchTab('cardio')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2 shrink-0">
                 🫀 Cardio & HRV
             </button>
-            <button id="tabSuenoBtn" onclick="switchTab('sueno')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2">
+            <button id="tabSuenoBtn" onclick="switchTab('sueno')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2 shrink-0">
                 🌙 Arquitectura de Sueño
             </button>
+            <button id="tabGlucosaBtn" onclick="switchTab('glucosa')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2 shrink-0">
+                🩸 Control Glucémico
+            </button>
         </div>
-        <!-- Botón de la pestaña -->
-<button id="tabGlucosaBtn" onclick="switchTab('glucosa')" class="py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2">
-    🩸 Control Glucémico
-</button>
-
-<!-- Contenido de la pestaña -->
-<div id="tabGlucosa" class="tab-content hidden p-6 bg-[#181818] rounded-b-xl border border-gray-800">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
-            <span class="text-xs text-gray-400 font-bold uppercase">Glucosa Basal (Última)</span>
-            <div id="coachGlucosaVal" class="text-3xl font-extrabold text-white mt-1">-- mg/dL</div>
-            <span id="coachGlucosaTendencia" class="text-xs text-gray-400">Tendencia: --</span>
-        </div>
-        <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
-            <span class="text-xs text-gray-400 font-bold uppercase">Variabilidad (CV%)</span>
-            <div id="coachGlucosaCV" class="text-3xl font-extrabold text-white mt-1">-- %</div>
-            <span class="text-xs text-gray-400">Meta: < 15%</span>
-        </div>
-        <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
-            <span class="text-xs text-gray-400 font-bold uppercase">Estado Metabólico</span>
-            <div id="coachGlucosaEstado" class="text-xl font-bold text-emerald-400 mt-2">--</div>
-        </div>
-    </div>
-    
-    <div id="coachGlucosaAlerta" class="hidden p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-sm">
-        <!-- Mensajes de alerta dinámicos -->
-    </div>
-</div>
 
         <!-- ==================== PESTAÑA 1: CARDIO & HRV ==================== -->
         <div id="viewCardio" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Panel Izquierdo: Lista de Alumnos -->
             <div class="bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800">
                 <h2 class="text-lg font-bold mb-4 text-[#00adb5] border-b border-gray-700 pb-2">Estado Diario de Alumnos</h2>
                 <div id="athletesList" class="space-y-3">
-                    <p class="text-gray-500 text-center py-4">Cargando datos desde la nube...</p>
+                    <p class="text-gray-500 text-center py-4">Cargando datos...</p>
                 </div>
             </div>
 
-            <!-- Panel Derecho: Gráfica y Métricas -->
             <div class="lg:col-span-2 bg-[#1e1e1e] p-5 rounded-xl shadow-lg border border-gray-800 flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -81,55 +53,53 @@
                             <span id="selectedAthleteStatus" class="px-3 py-1 rounded-full text-xs font-bold"></span>
                         </div>
                         <button id="openAnalysisBtn" onclick="abrirModalAnalisis()" class="bg-zinc-800 hover:bg-zinc-700 text-[#00adb5] border border-[#00adb5]/30 text-xs font-bold py-1.5 px-3 rounded-lg transition flex items-center gap-1.5">
-                            🔍 Ver Análisis Fisiológico
+                            🔍 Ver Análisis
                         </button>
                     </div>
 
-                    <!-- Grid Nivel 1 -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                        <div class="bg-[#1f2937] p-4 rounded-xl text-center border-2 border-[#00adb5] flex flex-col justify-center">
-                            <p class="text-xs text-[#00adb5] font-black uppercase tracking-wider">Readiness Score</p>
+                        <div class="bg-[#1f2937] p-4 rounded-xl text-center border-2 border-[#00adb5]">
+                            <p class="text-xs text-[#00adb5] font-black uppercase">Readiness Score</p>
                             <p id="metricReadiness" class="text-4xl font-black text-white mt-1">-</p>
                             <p id="metricReadinessZone" class="text-[10px] text-gray-400 font-bold uppercase mt-1">-</p>
                         </div>
-                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800 flex flex-col justify-center">
-                            <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Último HRV</p>
+                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+                            <p class="text-xs text-gray-400 font-medium uppercase">Último HRV</p>
                             <p id="metricLatestHrv" class="text-2xl font-black text-[#00adb5] mt-1">-</p>
                         </div>
-                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800 flex flex-col justify-center">
-                            <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Umbral Mín SWC</p>
+                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+                            <p class="text-xs text-gray-400 font-medium uppercase">Umbral Mín SWC</p>
                             <p id="metricSwcRange" class="text-2xl font-black text-emerald-400 mt-1">-</p>
                         </div>
-                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800 flex flex-col justify-center">
-                            <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Predicción Riesgo</p>
+                        <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
+                            <p class="text-xs text-gray-400 font-medium uppercase">Predicción Riesgo</p>
                             <p id="metricRiskTrend" class="text-lg font-black text-amber-400 mt-1">-</p>
                         </div>
                     </div>
 
-                    <!-- Grid Nivel 2 -->
                     <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[10px] text-gray-400 font-medium uppercase">Línea Base Basal</p>
+                            <p class="text-[10px] text-gray-400 uppercase">Línea Base</p>
                             <p id="metricAvgHrv" class="text-lg font-bold text-white mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[10px] text-gray-400 font-medium uppercase">FC Reposo</p>
+                            <p class="text-[10px] text-gray-400 uppercase">FC Reposo</p>
                             <p id="metricPulse" class="text-lg font-bold text-rose-400 mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[10px] text-gray-400 font-medium uppercase">Índice IBA</p>
+                            <p class="text-[10px] text-gray-400 uppercase">Índice IBA</p>
                             <p id="metricIBA" class="text-lg font-bold text-violet-400 mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[10px] text-gray-400 font-medium uppercase">CV-RMSSD (7d)</p>
+                            <p class="text-[10px] text-gray-400 uppercase">CV-RMSSD</p>
                             <p id="metricCV" class="text-lg font-bold text-cyan-400 mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[10px] text-gray-400 font-medium uppercase">Potencia HF</p>
+                            <p class="text-[10px] text-gray-400 uppercase">Potencia HF</p>
                             <p id="metricHF" class="text-lg font-bold text-emerald-400 mt-0.5">-</p>
                         </div>
                         <div class="bg-[#252525] p-3 rounded-xl text-center border border-gray-800">
-                            <p class="text-[10px] text-gray-400 font-medium uppercase">Ratio LF/HF</p>
+                            <p class="text-[10px] text-gray-400 uppercase">Ratio LF/HF</p>
                             <p id="metricLFHF" class="text-lg font-bold text-amber-400 mt-0.5">-</p>
                         </div>
                     </div>
@@ -139,7 +109,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <!-- ==================== PESTAÑA 2: SUEÑO & RECUPERACIÓN ==================== -->
@@ -166,20 +135,20 @@
                             <p id="metricSuenoEficiencia" class="text-2xl font-black text-emerald-400 mt-1">-%</p>
                         </div>
                         <div class="bg-[#252525] p-4 rounded-xl text-center border border-gray-800">
-                            <p class="text-xs text-gray-400 font-medium">Sueño Profundo (SWS)</p>
+                            <p class="text-xs text-gray-400 font-medium">Sueño Profundo</p>
                             <p id="metricSuenoProfundo" class="text-2xl font-black text-purple-400 mt-1">- hrs</p>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-[#252525] p-4 rounded-xl border border-gray-800 flex flex-col items-center">
-                            <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Arquitectura del Sueño (Última Noche)</h3>
+                            <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Arquitectura del Sueño</h3>
                             <div class="w-48 h-48 flex items-center justify-center">
                                 <canvas id="suenoDonutChart"></canvas>
                             </div>
                         </div>
                         <div class="bg-[#252525] p-4 rounded-xl border border-gray-800">
-                            <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Histórico de Horas Dormidas</h3>
+                            <h3 class="text-xs font-bold text-gray-400 uppercase mb-4">Histórico de Horas</h3>
                             <div class="h-48">
                                 <canvas id="suenoBarChart"></canvas>
                             </div>
@@ -188,6 +157,31 @@
                 </div>
             </div>
         </div>
+
+        <!-- ==================== PESTAÑA 3: CONTROL GLUCÉMICO ==================== -->
+        <div id="viewGlucosa" class="hidden p-6 bg-[#181818] rounded-xl border border-gray-800">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
+                    <span class="text-xs text-gray-400 font-bold uppercase">Glucosa Basal (Última)</span>
+                    <div id="coachGlucosaVal" class="text-3xl font-extrabold text-white mt-1">-- mg/dL</div>
+                    <span id="coachGlucosaTendencia" class="text-xs text-gray-400">Contexto: --</span>
+                </div>
+                <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
+                    <span class="text-xs text-gray-400 font-bold uppercase">Variabilidad (CV%)</span>
+                    <div id="coachGlucosaCV" class="text-3xl font-extrabold text-white mt-1">-- %</div>
+                    <span class="text-xs text-gray-400">Meta recomendada: < 15%</span>
+                </div>
+                <div class="bg-[#222] p-4 rounded-xl border border-gray-800">
+                    <span class="text-xs text-gray-400 font-bold uppercase">Estado Metabólico</span>
+                    <div id="coachGlucosaEstado" class="text-xl font-bold text-emerald-400 mt-2">--</div>
+                </div>
+            </div>
+            
+            <div id="coachGlucosaAlerta" class="hidden p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-sm">
+                <!-- Diagnóstico automático -->
+            </div>
+        </div>
+
     </div>
 
     <!-- MODAL EMERGENTE -->
@@ -195,29 +189,24 @@
         <div class="bg-[#1e1e1e] border border-zinc-800 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
             <div class="p-5 border-b border-zinc-800 flex justify-between items-center">
                 <div>
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        📊 Diagnóstico Fisiológico Personalizado
-                    </h3>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">📊 Diagnóstico Fisiológico Personalizado</h3>
                     <p id="modalAthleteName" class="text-xs text-gray-400 mt-0.5">Atleta: -</p>
                 </div>
                 <button onclick="cerrarModalAnalisis()" class="text-gray-400 hover:text-white text-xl p-1 font-bold">&times;</button>
             </div>
             <div class="p-6 space-y-4 overflow-y-auto" id="modalVariablesBody"></div>
             <div class="p-4 border-t border-zinc-800 bg-zinc-900/50 rounded-b-2xl text-right">
-                <button onclick="cerrarModalAnalisis()" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
-                    Cerrar Análisis
-                </button>
+                <button onclick="cerrarModalAnalisis()" class="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition">Cerrar Análisis</button>
             </div>
         </div>
     </div> 
 
     <script>
     const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6IZ0.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
         
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // VARIABLES GLOBALES
     let rawData = [];
     let athletesData = {};
     let hrvChartInstance = null;
@@ -226,12 +215,10 @@
     let currentSelectedAthlete = ""; 
     let currentAnalysisData = null;
 
-    // Helper para detectar exactamente la columna del nombre del alumno
     function obtenerNombreAlumno(row) {
         return row.alumno_nombre || row.nombre || row.alumno || row.atleta || null;
     }
 
-    // CARGA DE DATOS DESDE SUPABASE
     async function loadDataFromSupabase() {
         try {
             const listCardio = document.getElementById('athletesList');
@@ -258,33 +245,43 @@
             renderAthletesList();
         } catch (err) {
             console.error("Error Supabase:", err);
-            document.getElementById('athletesList').innerHTML = `<p class="text-red-400 text-center py-4 text-xs">Error al conectar con Supabase (${err.message}).</p>`;
+            document.getElementById('athletesList').innerHTML = `<p class="text-red-400 text-center py-4 text-xs">Error en conexión Supabase.</p>`;
         }
     }
 
-    // CONTROL DE PESTAÑAS
+    // CONTROL DE PESTAÑAS AJUSTADO
     function switchTab(tab) {
         const viewCardio = document.getElementById('viewCardio');
         const viewSueno = document.getElementById('viewSueno');
+        const viewGlucosa = document.getElementById('viewGlucosa');
+        
         const btnCardio = document.getElementById('tabCardioBtn');
         const btnSueno = document.getElementById('tabSuenoBtn');
+        const btnGlucosa = document.getElementById('tabGlucosaBtn');
+
+        // Reset
+        viewCardio.classList.add('hidden');
+        viewSueno.classList.add('hidden');
+        viewGlucosa.classList.add('hidden');
+
+        btnCardio.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2 shrink-0";
+        btnSueno.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2 shrink-0";
+        btnGlucosa.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2 shrink-0";
 
         if (tab === 'cardio') {
             viewCardio.classList.remove('hidden');
-            viewSueno.classList.add('hidden');
-            btnCardio.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2";
-            btnSueno.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2";
-        } else {
-            viewCardio.classList.add('hidden');
+            btnCardio.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2 shrink-0";
+        } else if (tab === 'sueno') {
             viewSueno.classList.remove('hidden');
-            btnSueno.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2";
-            btnCardio.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#181818] text-gray-400 hover:text-white border-t-2 border-x border-transparent transition flex items-center gap-2";
+            btnSueno.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2 shrink-0";
             renderAthletesListSueno();
             renderSuenoView();
+        } else if (tab === 'glucosa') {
+            viewGlucosa.classList.remove('hidden');
+            btnGlucosa.className = "py-2.5 px-6 font-bold text-sm rounded-t-xl bg-[#1e1e1e] text-[#00adb5] border-t-2 border-x border-[#00adb5] transition flex items-center gap-2 shrink-0";
         }
     }
 
-    // CÁLCULOS FISIOLÓGICOS (SWC, REGRESIÓN, IBA, CV)
     function calcularSWCyRegresion(hrvArray, pulseArray, records) {
         if (!hrvArray || hrvArray.length < 3) {
             return { error: true, diagnostico: "Datos Insuficientes", alerta: false };
@@ -302,14 +299,12 @@
         const latestPulse = pulseArray[pulseArray.length - 1];
         const alerta = latestHrv < limiteInferior;
 
-        // IBA & CV
         const iba = (latestHrv / latestPulse).toFixed(2);
         const last7Hrv = hrvArray.slice(-7);
         const mean7 = last7Hrv.reduce((a, b) => a + b, 0) / last7Hrv.length;
         const sd7 = Math.sqrt(last7Hrv.reduce((a, b) => a + Math.pow(b - mean7, 2), 0) / last7Hrv.length);
         const cv = ((sd7 / mean7) * 100).toFixed(1);
 
-        // Readiness Score
         let readiness = Math.round(50 + ((latestHrv - mean) / (sd || 1)) * 25);
         readiness = Math.min(100, Math.max(10, readiness));
         
@@ -317,7 +312,6 @@
         if (readiness < 50) readinessTxt = "DESCARGA NECESARIA";
         else if (readiness < 70) readinessTxt = "RECUPERACIÓN MODERADA";
 
-        // Proyección Lineal
         const n = hrvArray.length;
         let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
         hrvArray.forEach((y, x) => {
@@ -344,14 +338,13 @@
         };
     }
 
-    // LISTA CARDIO
     function renderAthletesList() {
         const listContainer = document.getElementById('athletesList');
         listContainer.innerHTML = '';
         
         const athleteNames = Object.keys(athletesData);
         if(athleteNames.length === 0) {
-            listContainer.innerHTML = `<p class="text-amber-400 text-center py-4 text-xs">⚠️ No hay registros con nombres válidos en la tabla.</p>`;
+            listContainer.innerHTML = `<p class="text-amber-400 text-center py-4 text-xs">⚠️ No hay registros válidos.</p>`;
             return;
         }
 
@@ -387,55 +380,38 @@
         }
     }
 
-    // LISTA SUEÑO
-function renderAthletesListSueno() {
-    const listContainer = document.getElementById('athletesListSueno');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
+    function renderAthletesListSueno() {
+        const listContainer = document.getElementById('athletesListSueno');
+        if (!listContainer) return;
+        listContainer.innerHTML = '';
 
-    const athleteNames = Object.keys(athletesData);
-    if (athleteNames.length === 0) {
-        listContainer.innerHTML = `<p class="text-gray-500 text-center py-4 text-xs">No hay alumnos registrados.</p>`;
-        return;
+        const athleteNames = Object.keys(athletesData);
+        athleteNames.forEach(name => {
+            const records = athletesData[name];
+            const latestRecord = records[records.length - 1] || {};
+            
+            const duracion = Number(latestRecord.horas_sueno ?? (latestRecord.duracion_total_min ? latestRecord.duracion_total_min / 60 : 0)).toFixed(1);
+            const eficiencia = Number(latestRecord.eficiencia_sueno ?? 0);
+            const calidad = Number(latestRecord.calidad_sueno_subjetiva ?? 0);
+            const activeStyle = (name === currentSelectedAthlete) ? "border-[#00adb5] bg-[#2d2d2d]" : "border-gray-800 bg-[#252525]";
+
+            const itemHtml = `
+                <div onclick="selectAthlete('${name}')" class="flex justify-between items-center p-3 rounded-lg hover:bg-[#2d2d2d] transition cursor-pointer border-l-4 ${activeStyle}">
+                    <div>
+                        <h3 class="font-bold text-sm text-white">${name}</h3>
+                        <p class="text-xs text-gray-400">Eficiencia: ${eficiencia}%</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-sm font-bold block text-indigo-400">${duracion} hrs</span>
+                        <span class="text-[10px] text-amber-400">Calidad: ${calidad}/5</span>
+                    </div>
+                </div>
+            `;
+            listContainer.innerHTML += itemHtml;
+        });
     }
 
-    athleteNames.forEach(name => {
-        const records = athletesData[name];
-        const latestRecord = records[records.length - 1] || {};
-        
-        // Mapeo exacto según tus columnas de Supabase
-        const duracion = Number(
-            latestRecord.horas_sueno ?? 
-            (latestRecord.duracion_total_min ? latestRecord.duracion_total_min / 60 : 0)
-        ).toFixed(1);
-
-        const eficiencia = Number(
-            latestRecord.eficiencia_sueno ?? 0
-        );
-
-        const calidad = Number(
-            latestRecord.calidad_sueno_subjetiva ?? 0
-        );
-
-        const activeStyle = (name === currentSelectedAthlete) ? "border-[#00adb5] bg-[#2d2d2d]" : "border-gray-800 bg-[#252525]";
-
-        const itemHtml = `
-            <div onclick="selectAthlete('${name}')" class="flex justify-between items-center p-3 rounded-lg hover:bg-[#2d2d2d] transition cursor-pointer border-l-4 ${activeStyle}">
-                <div>
-                    <h3 class="font-bold text-sm text-white">${name}</h3>
-                    <p class="text-xs text-gray-400">Eficiencia: ${eficiencia}%</p>
-                </div>
-                <div class="text-right">
-                    <span class="text-sm font-bold block text-indigo-400">${duracion} hrs</span>
-                    <span class="text-[10px] text-amber-400">Calidad: ${calidad}/5</span>
-                </div>
-            </div>
-        `;
-        listContainer.innerHTML += itemHtml;
-    });
-}
-
-    // SELECCIÓN DE ATLETA
+    // SELECCIÓN DEL ATLETA Y CARGA INTEGRADA DE GLUCOSA
     function selectAthlete(name) {
         currentSelectedAthlete = name;
         const records = athletesData[name];
@@ -448,6 +424,7 @@ function renderAthletesListSueno() {
         const analisis = calcularSWCyRegresion(hrvValues, pulseValues, records);
         currentAnalysisData = analisis;
 
+        // Renderizado Módulo Cardio
         document.getElementById('selectedAthleteName').innerText = name;
         document.getElementById('metricLatestHrv').innerText = `${latestRecord.hrv_rmssd} ms`;
         document.getElementById('metricAvgHrv').innerText = `${analisis.promedioBasal} ms`;
@@ -473,12 +450,51 @@ function renderAthletesListSueno() {
         statusBadge.innerText = analisis.diagnostico.toUpperCase();
         statusBadge.className = analisis.alerta ? "px-3 py-1 rounded-full text-xs font-bold bg-red-900 text-red-200" : "px-3 py-1 rounded-full text-xs font-bold bg-green-950 text-green-300";
 
+        // Renderizado Módulo Glucosa (AQUÍ QUEDA CORRECTAMENTE ALOJADO DENTRO DE LA FUNCIÓN)
+        if (latestRecord.glucosa_basal_mgdl) {
+            document.getElementById('coachGlucosaVal').innerText = `${latestRecord.glucosa_basal_mgdl} mg/dL`;
+            document.getElementById('coachGlucosaTendencia').innerText = `Contexto: ${latestRecord.tendencia_glucosa || 'Ayuno'}`;
+        } else {
+            document.getElementById('coachGlucosaVal').innerText = `-- mg/dL`;
+            document.getElementById('coachGlucosaTendencia').innerText = `Sin registros`;
+        }
+
+        // Llamada a analítica Python
+        cargarAnaliticaGlucosa(records);
+
         renderChart(records, analisis);
         renderAthletesListSueno();
         renderSuenoView();
     }
 
-    // DIBUJO DE GRÁFICO HRV
+    async function cargarAnaliticaGlucosa(registrosAtleta) {
+        try {
+            const response = await fetch('https://tu-usuario.pythonanywhere.com/api/analitica_glucosa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    registros: registrosAtleta.map(r => ({ glucosa: r.glucosa_basal_mgdl, hrv: r.hrv_rmssd }))
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('coachGlucosaCV').innerText = `${data.coeficiente_variacion_pct}%`;
+                document.getElementById('coachGlucosaEstado').innerText = data.estado;
+                
+                const alertaEl = document.getElementById('coachGlucosaAlerta');
+                if (data.alerta) {
+                    alertaEl.innerText = `⚠️ ${data.alerta}`;
+                    alertaEl.classList.remove('hidden');
+                } else {
+                    alertaEl.classList.add('hidden');
+                }
+            }
+        } catch(e) {
+            console.log("Servidor Python offline o no configurado aún.");
+        }
+    }
+
     function renderChart(records, analisis) {
         const ctx = document.getElementById('hrvChart').getContext('2d');
         if (hrvChartInstance) hrvChartInstance.destroy();
@@ -492,22 +508,8 @@ function renderAthletesListSueno() {
             data: {
                 labels: labels,
                 datasets: [
-                    {
-                        label: 'HRV (RMSSD)',
-                        data: hrvData,
-                        borderColor: '#00adb5',
-                        backgroundColor: 'rgba(0, 173, 181, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    },
-                    {
-                        label: 'Pulso (BPM)',
-                        data: pulseData,
-                        borderColor: '#f43f5e',
-                        borderDash: [5, 5],
-                        fill: false,
-                        tension: 0.3
-                    }
+                    { label: 'HRV (RMSSD)', data: hrvData, borderColor: '#00adb5', backgroundColor: 'rgba(0, 173, 181, 0.1)', fill: true, tension: 0.3 },
+                    { label: 'Pulso (BPM)', data: pulseData, borderColor: '#f43f5e', borderDash: [5, 5], fill: false, tension: 0.3 }
                 ]
             },
             options: {
@@ -522,119 +524,68 @@ function renderAthletesListSueno() {
         });
     }
 
-    // VISTA SUEÑO
-function renderSuenoView() {
-    if (!currentSelectedAthlete || !athletesData[currentSelectedAthlete]) return;
+    function renderSuenoView() {
+        if (!currentSelectedAthlete || !athletesData[currentSelectedAthlete]) return;
 
-    const records = athletesData[currentSelectedAthlete];
-    const latestRecord = records[records.length - 1] || {};
+        const records = athletesData[currentSelectedAthlete];
+        const latestRecord = records[records.length - 1] || {};
 
-    // Mapeo directo a tus columnas de Supabase
-    const horasTotales = Number(
-        latestRecord.horas_sueno ?? 
-        (latestRecord.duracion_total_min ? latestRecord.duracion_total_min / 60 : 0)
-    ).toFixed(1);
+        const horasTotales = Number(latestRecord.horas_sueno ?? (latestRecord.duracion_total_min ? latestRecord.duracion_total_min / 60 : 0)).toFixed(1);
+        const eficiencia = Number(latestRecord.eficiencia_sueno ?? 0);
+        const sws = Number(latestRecord.min_profundo ? latestRecord.min_profundo / 60 : (latestRecord.sueno_profundo ?? 0)).toFixed(1);
+        const rem = Number(latestRecord.min_rem ? latestRecord.min_rem / 60 : (latestRecord.sueno_rem ?? 0)).toFixed(1);
+        const calidadSubjetiva = Number(latestRecord.calidad_sueno_subjetiva ?? 0);
+        const ligero = Math.max(0, (horasTotales - sws - rem)).toFixed(1);
 
-    const eficiencia = Number(latestRecord.eficiencia_sueno ?? 0);
-    const sws = Number(latestRecord.min_profundo ? latestRecord.min_profundo / 60 : (latestRecord.sueno_profundo ?? 0)).toFixed(1);
-    const rem = Number(latestRecord.min_rem ? latestRecord.min_rem / 60 : (latestRecord.sueno_rem ?? 0)).toFixed(1);
-    const calidadSubjetiva = Number(latestRecord.calidad_sueno_subjetiva ?? 0);
-    
-    const ligero = Math.max(0, (horasTotales - sws - rem)).toFixed(1);
+        document.getElementById('suenoAthleteName').innerText = currentSelectedAthlete;
+        document.getElementById('metricSuenoDuracion').innerText = `${horasTotales} hrs`;
+        document.getElementById('metricSuenoEficiencia').innerText = `${eficiencia}%`;
+        document.getElementById('metricSuenoProfundo').innerText = `${sws} hrs`;
+        document.getElementById('suenoSubjetivoBadge').innerText = `CALIDAD SUBJETIVA: ${calidadSubjetiva}/5`;
 
-    document.getElementById('suenoAthleteName').innerText = currentSelectedAthlete;
-    document.getElementById('metricSuenoDuracion').innerText = `${horasTotales} hrs`;
-    document.getElementById('metricSuenoEficiencia').innerText = `${eficiencia}%`;
-    document.getElementById('metricSuenoProfundo').innerText = `${sws} hrs`;
-    document.getElementById('suenoSubjetivoBadge').innerText = `CALIDAD SUBJETIVA: ${calidadSubjetiva}/5`;
-
-    // Gráfico de Torta (Arquitectura)
-    const ctxDonut = document.getElementById('suenoDonutChart').getContext('2d');
-    if (suenoDonutInstance) suenoDonutInstance.destroy();
-    
-    suenoDonutInstance = new Chart(ctxDonut, {
-        type: 'doughnut',
-        data: {
-            labels: ['Profundo (SWS)', 'Ligero', 'REM'],
-            datasets: [{
-                data: [parseFloat(sws), parseFloat(ligero), parseFloat(rem)],
-                backgroundColor: ['#a855f7', '#3b82f6', '#06b6d4'],
-                borderWidth: 0
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-
-    // Gráfico de Barras (Histórico)
-    const ctxBar = document.getElementById('suenoBarChart').getContext('2d');
-    if (suenoBarInstance) suenoBarInstance.destroy();
-
-    const suenoLabels = records.slice(-7).map(r => formatearFechaCronologica(r.fecha).split(' ')[0]);
-    const suenoValues = records.slice(-7).map(r => Number(
-        r.horas_sueno ?? 
-        (r.duracion_total_min ? r.duracion_total_min / 60 : 0)
-    ));
-
-    suenoBarInstance = new Chart(ctxBar, {
-        type: 'bar',
-        data: {
-            labels: suenoLabels,
-            datasets: [{ label: 'Horas Dormidas', data: suenoValues, backgroundColor: '#00adb5', borderRadius: 4 }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' }, beginAtZero: true },
-                x: { grid: { display: false }, ticks: { color: '#888' } }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
-}
-// Renderizado rápido del último registro
-if (latestRecord.glucosa_basal_mgdl) {
-    document.getElementById('coachGlucosaVal').innerText = `${latestRecord.glucosa_basal_mgdl} mg/dL`;
-    document.getElementById('coachGlucosaTendencia').innerText = `Contexto: ${latestRecord.tendencia_glucosa || 'N/A'}`;
-}
-
-// Llamada a Python AnyWhere para analítica de tendencia
-async function cargarAnaliticaGlucosa(registrosAtleta) {
-    const response = await fetch('https://tu-usuario.pythonanywhere.com/api/analitica_glucosa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            registros: registrosAtleta.map(r => ({ glucosa: r.glucosa_basal_mgdl, hrv: r.hrv_ms }))
-        })
-    });
-    
-    if (response.ok) {
-        const data = await response.json();
-        document.getElementById('coachGlucosaCV').innerText = `${data.coeficiente_variacion_pct}%`;
-        document.getElementById('coachGlucosaEstado').innerText = data.estado;
+        const ctxDonut = document.getElementById('suenoDonutChart').getContext('2d');
+        if (suenoDonutInstance) suenoDonutInstance.destroy();
         
-        const alertaEl = document.getElementById('coachGlucosaAlerta');
-        if (data.alerta) {
-            alertaEl.innerText = `⚠️ ${data.alerta}`;
-            alertaEl.classList.remove('hidden');
-        } else {
-            alertaEl.classList.add('hidden');
-        }
+        suenoDonutInstance = new Chart(ctxDonut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Profundo', 'Ligero', 'REM'],
+                datasets: [{ data: [parseFloat(sws), parseFloat(ligero), parseFloat(rem)], backgroundColor: ['#a855f7', '#3b82f6', '#06b6d4'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        const ctxBar = document.getElementById('suenoBarChart').getContext('2d');
+        if (suenoBarInstance) suenoBarInstance.destroy();
+
+        const suenoLabels = records.slice(-7).map(r => formatearFechaCronologica(r.fecha));
+        const suenoValues = records.slice(-7).map(r => Number(r.horas_sueno ?? (r.duracion_total_min ? r.duracion_total_min / 60 : 0)));
+
+        suenoBarInstance = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: suenoLabels,
+                datasets: [{ label: 'Horas Dormidas', data: suenoValues, backgroundColor: '#00adb5', borderRadius: 4 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { display: false } }
+            }
+        });
     }
-}
+
     function formatearFechaCronologica(fechaStr) {
         try {
             const d = new Date(fechaStr);
             if (isNaN(d.getTime())) return fechaStr;
-            const dia = String(d.getDate()).padStart(2, '0');
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            return `${dia}/${mes}`;
+            return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
         } catch {
             return fechaStr;
         }
     }
 
-    // MODAL ANALISIS
     function abrirModalAnalisis() {
         if (!currentAnalysisData) return;
         document.getElementById('modalAthleteName').innerText = `Atleta: ${currentSelectedAthlete}`;
@@ -664,7 +615,6 @@ async function cargarAnaliticaGlucosa(registrosAtleta) {
         `;
     }
 
-    // INICIALIZAR
     document.addEventListener('DOMContentLoaded', () => {
         loadDataFromSupabase();
     });
