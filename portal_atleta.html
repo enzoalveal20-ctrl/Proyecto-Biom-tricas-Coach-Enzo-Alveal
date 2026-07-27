@@ -28,55 +28,57 @@
             </div>
         </header>
 
-        <!-- PANTALLA PRINCIPAL DE SCORE DEL DÍA -->
+        <!-- SECCIÓN DE MÉTRICAS MATUTINAS RAPIDAS -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- TARJETA DE GLUCOSA BASAL -->
+            <div class="bg-[#181818] p-5 rounded-2xl border border-gray-800 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Glucosa Matutina</span>
+                    <span id="atletaGlucosaBadge" class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-400">Sin Datos</span>
+                </div>
+                <div class="flex items-baseline gap-2 my-2">
+                    <span id="atletaGlucosaValor" class="text-4xl font-extrabold text-white">--</span>
+                    <span class="text-sm font-semibold text-gray-400">mg/dL</span>
+                </div>
+                <p id="atletaGlucosaSubtexto" class="text-xs text-gray-400">Medido en ayuno estricto.</p>
+            </div>       
 
-     <div class="bg-[#181818] p-5 rounded-2xl border border-gray-800">
-    <div class="flex justify-between items-center mb-3">
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Glucosa Matutina</span>
-        <span id="atletaGlucosaBadge" class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-400">Normal</span>
-    </div>
-    <div class="flex items-baseline gap-2">
-        <span id="atletaGlucosaValor" class="text-3xl font-extrabold text-white">--</span>
-        <span class="text-sm font-semibold text-gray-400">mg/dL</span>
-    </div>
-    <p id="atletaGlucosaSubtexto" class="text-xs text-gray-400 mt-2">Medido en ayuno estricto.</p>
-</div>       
-            <!-- TARJETA DEL PUNTAJE DE HOY (ALINEADO CON COACH) -->
-            <div id="readinessCard" class="md:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300">
+            <!-- TARJETA DEL PUNTAJE DE HOY (READINESS) -->
+            <div id="readinessCard" class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300">
                 <span class="text-xs font-black uppercase tracking-widest text-gray-400">Tu Puntaje de Hoy</span>
                 
-                <div class="my-4 relative flex items-center justify-center">
-                    <div id="scoreRing" class="w-36 h-36 rounded-full border-8 border-gray-800 flex flex-col items-center justify-center transition-all duration-500">
-                        <span id="scoreValue" class="text-5xl font-black text-white">-</span>
-                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">/ 100 PTS</span>
+                <div class="my-2 relative flex items-center justify-center">
+                    <div id="scoreRing" class="w-32 h-32 rounded-full border-8 border-gray-800 flex flex-col items-center justify-center transition-all duration-500">
+                        <span id="scoreValue" class="text-4xl font-black text-white">-</span>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">/ 100 PTS</span>
                     </div>
                 </div>
 
                 <div class="w-full">
-                    <div id="statusBadge" class="py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-400 mb-2">
+                    <div id="statusBadge" class="py-1 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-400 mb-1">
                         Procesando datos
                     </div>
-                    <p id="statusSubtext" class="text-xs text-gray-400 font-medium">-</p>
+                    <p id="statusSubtext" class="text-[11px] text-gray-400 font-medium">-</p>
                 </div>
             </div>
 
-            <!-- EXPLICACIÓN FISIOLÓGICA DE TENDENCIA Y SALUD -->
-            <div class="md:col-span-2 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between">
+            <!-- EXPLICACIÓN FISIOLÓGICA Y SUGERENCIA -->
+            <div class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between">
                 <div>
                     <h2 class="text-base font-bold text-[#00adb5] mb-3 flex items-center gap-2">
-                        🧠 ¿Cómo está respondiendo tu cuerpo hoy?
+                        🧠 Diagnosticó Fisiológico Hoy
                     </h2>
                     
-                    <div id="physioExplanation" class="space-y-3 text-sm text-gray-300 leading-relaxed">
+                    <div id="physioExplanation" class="space-y-2 text-xs text-gray-300 leading-relaxed">
                         <p class="text-gray-500 italic">Buscando tus datos en el sistema...</p>
                     </div>
                 </div>
 
-                <div id="recommendationBox" class="mt-4 p-3.5 rounded-xl bg-[#252525] border border-gray-800 flex items-start gap-3">
-                    <span class="text-xl">💡</span>
+                <div id="recommendationBox" class="mt-4 p-3 rounded-xl bg-[#252525] border border-gray-800 flex items-start gap-2.5">
+                    <span class="text-lg">💡</span>
                     <div>
-                        <h4 class="text-xs font-bold text-white uppercase">Sugerencia del día</h4>
+                        <h4 class="text-[11px] font-bold text-white uppercase">Sugerencia del día</h4>
                         <p id="recommendationText" class="text-xs text-gray-400 mt-0.5">El sistema sugerirá pautas de carga o descanso según tus métricas.</p>
                     </div>
                 </div>
@@ -84,12 +86,12 @@
 
         </div>
 
-        <!-- GRÁFICO HISTÓRICO CON ZONA DE CONFORT -->
+        <!-- GRÁFICO HISTÓRICO DE RECUPERACIÓN -->
         <div class="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                 <div>
                     <h3 class="text-lg font-bold text-white">Tu Historial de Recuperación (HRV)</h3>
-                    <p class="text-xs text-gray-400">La franja verde representa tu **Zona de Confort Fisiológico (SWC)**.</p>
+                    <p class="text-xs text-gray-400">La franja verde representa tu Zona de Confort Fisiológico (SWC).</p>
                 </div>
                 <div class="flex items-center gap-4 text-xs font-semibold">
                     <span class="flex items-center gap-1.5 text-cyan-400"><span class="w-3 h-3 rounded-full bg-[#00adb5] inline-block"></span> Tu HRV</span>
@@ -106,7 +108,7 @@
 
     <script>
     const SUPABASE_URL = "https://ahsqbiqbxyqmzejhjiwt.supabase.co"; 
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6MjA5OTYyMzcyN30.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc3FiaXFieHlxbXplamhqaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNDc3MjcsImV4cCI6IZ0.UpGXmJK2N8SNVhKvh1xijpYfCC1KH_91nFdjA461g9M"; // Reemplazar con tu clave completa
         
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -124,11 +126,11 @@
             loadDataForAthlete(targetAthlete);
         } else {
             document.getElementById('welcomeUser').innerHTML = `¡Hola, <span class="text-[#00adb5]">Atleta</span>!`;
-            document.getElementById('physioExplanation').innerHTML = `<p class="text-amber-400 font-medium">⚠️ No se especificó ningún atleta en el enlace. Por favor ingresa desde la consola de evaluación.</p>`;
+            document.getElementById('physioExplanation').innerHTML = `<p class="text-amber-400 font-medium">⚠️ No se especificó ningún atleta en el enlace.</p>`;
         }
     });
 
-async function loadDataForAthlete(athleteName) {
+    async function loadDataForAthlete(athleteName) {
         try {
             const { data, error } = await supabaseClient
                 .from('registros_hrv')
@@ -143,18 +145,16 @@ async function loadDataForAthlete(athleteName) {
                 return;
             }
 
-            // 🛑 GARANTIZAR ORDEN CRONOLÓGICO STRICTO POR TIMESTAMP
             data.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
             const latestRecord = data[data.length - 1];
             const hrvValues = data.map(r => r.hrv_rmssd);
             const pulseValues = data.map(r => r.pulso_bpm);
 
-            // CÁLCULO ALINEADO Y CALIBRADO CON EL DASHBOARD COACH
             const analisis = calcularBiometriaAvanzada(hrvValues, pulseValues);
             
             actualizarScoreUI(analisis, latestRecord);
-            actualizarExplicacionFisiologica(analisis, latestRecord);
+            actualizarExplicacionFisiologica(analisis, latestRecord); // INTEGRACIÓN ORDENADA AQUÍ
             renderAthleteChart(data, analisis);
 
         } catch (err) {
@@ -162,7 +162,6 @@ async function loadDataForAthlete(athleteName) {
         }
     }
 
-// ALGORITMO CON VENTANA MÓVIL DESLIZANTE DE 14 DÍAS (SLIDING WINDOW)
     function calcularBiometriaAvanzada(hrvArr, pulseArr) {
         const total = hrvArr.length;
         if (total < 5) {
@@ -172,47 +171,32 @@ async function loadDataForAthlete(athleteName) {
             };
         }
 
-        // --- LÓGICA DE VENTANA DESLIZANTE (SLIDING WINDOW) ---
-        // Si hay menos de 14 días, toma todos los disponibles.
-        // Si hay 14 o más días, se desplaza tomando siempre los ÚLTIMOS 14 DÍAS (el día 15 reemplaza al 1).
         const diasVentana = 14;
         const ventanaHRV = total > diasVentana ? hrvArr.slice(-diasVentana) : hrvArr;
         const ventanaPulso = total > diasVentana ? pulseArr.slice(-diasVentana) : pulseArr;
 
-        // 1. Promedio Basal Dinámico de la Ventana Móvil
         const promBasalHRV = ventanaHRV.reduce((a, b) => a + b, 0) / ventanaHRV.length;
         const promBasalPulse = ventanaPulso.reduce((a, b) => a + b, 0) / ventanaPulso.length;
 
-        // 2. Desviación Estándar y Rango SWC (Zona Óptima / Franja Verde)
         const variancia = ventanaHRV.reduce((acc, v) => acc + Math.pow(v - promBasalHRV, 2), 0) / ventanaHRV.length;
         const desvEst = Math.sqrt(variancia) || 1;
         
-        // Coeficiente fisiológico para la franja de confort (SWC)
         const swcMin = promBasalHRV - (0.55 * desvEst);
         const swcMax = promBasalHRV + (0.55 * desvEst);
 
-        // 3. Últimos valores registrados (el día de hoy)
         const ultHRV = Number(hrvArr[total - 1]);
         const ultPulso = Number(pulseArr[total - 1]);
 
-        // 4. Cálculo Proporcional del Score (Respetando el estado actual)
         let penHRV = ultHRV < promBasalHRV ? ((promBasalHRV - ultHRV) / promBasalHRV) * 100 * 0.45 : 0;
         let penPulso = ultPulso > promBasalPulse ? ((ultPulso - promBasalPulse) / promBasalPulse) * 100 * 0.20 : 0;
         
         let score = Math.round(100 - (penHRV + penPulso));
 
-        // Regla de Protección del Atleta:
-        // Si el HRV de hoy está dentro o por encima de su SWC Mínimo (Franja Verde), 
-        // el puntaje no debe caer por debajo de 75 PTS.
         if (ultHRV >= swcMin) {
             score = Math.max(75, Math.min(100, score));
         } else {
-            // Solo si perfora la franja verde hacia abajo entra en zona de alerta/descarga
             score = Math.max(10, Math.min(65, score));
         }
-
-        let zonaRiesgo = ultHRV < swcMin;
-        let estaEnCaida = ultHRV < promBasalHRV;
 
         return {
             error: false,
@@ -220,11 +204,9 @@ async function loadDataForAthlete(athleteName) {
             promedioBasal: promBasalHRV.toFixed(1),
             swcMin: swcMin.toFixed(1),
             swcMax: swcMax.toFixed(1),
-            diasEvaluados: ventanaHRV.length,
             ultHRV: ultHRV,
             ultPulso: ultPulso,
-            zonaRiesgo: zonaRiesgo,
-            estaEnCaida: estaEnCaida
+            estaEnCaida: ultHRV < promBasalHRV
         };
     }
 
@@ -237,7 +219,6 @@ async function loadDataForAthlete(athleteName) {
         if (analisis.error) {
             scoreEl.innerText = "-";
             badgeEl.innerText = "Datos Insuficientes";
-            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-400 mb-2";
             subtextEl.innerText = analisis.msg;
             return;
         }
@@ -245,26 +226,49 @@ async function loadDataForAthlete(athleteName) {
         scoreEl.innerText = analisis.score;
 
         if (analisis.score >= 85) {
-            ringEl.className = "w-36 h-36 rounded-full border-8 border-emerald-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]";
-            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-800 mb-2";
-            badgeEl.innerText = "⚡ Estado de Gracia / Recuperación Alta";
-            subtextEl.innerText = "Tu sistema nervioso está altamente disponible para responder a cargas de impacto.";
+            ringEl.className = "w-32 h-32 rounded-full border-8 border-emerald-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(16,185,129,0.3)]";
+            badgeEl.className = "py-1 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-950 text-emerald-300 border border-emerald-800 mb-1";
+            badgeEl.innerText = "⚡ Recuperación Alta";
+            subtextEl.innerText = "Sistema nervioso disponible para responder a cargas de impacto.";
         } else if (analisis.score >= 65) {
-            ringEl.className = "w-36 h-36 rounded-full border-8 border-amber-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]";
-            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-950 text-amber-300 border border-amber-800 mb-2";
-            badgeEl.innerText = "⚠️ Fatiga Moderada / Precaución";
-            subtextEl.innerText = "Se detecta asimilación de carga acumulada. Tu cuerpo pide control del volumen.";
+            ringEl.className = "w-32 h-32 rounded-full border-8 border-amber-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]";
+            badgeEl.className = "py-1 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-amber-950 text-amber-300 border border-amber-800 mb-1";
+            badgeEl.innerText = "⚠️ Fatiga Moderada";
+            subtextEl.innerText = "Se detecta asimilación de carga. Controla el volumen.";
         } else {
-            ringEl.className = "w-36 h-36 rounded-full border-8 border-rose-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]";
-            badgeEl.className = "py-1.5 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-rose-950 text-rose-300 border border-rose-800 mb-2";
-            badgeEl.innerText = "🚨 Zona de Riesgo / Descarga";
-            subtextEl.innerText = "Tu freno vagal cayó significativamente. Se aconseja descanso activo o regeneración.";
+            ringEl.className = "w-32 h-32 rounded-full border-8 border-rose-500 flex flex-col items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(244,63,94,0.3)]";
+            badgeEl.className = "py-1 px-3 rounded-full text-xs font-bold uppercase tracking-wide bg-rose-950 text-rose-300 border border-rose-800 mb-1";
+            badgeEl.innerText = "🚨 Zona de Descarga";
+            subtextEl.innerText = "Freno vagal reducido. Se aconseja descanso activo.";
         }
     }
 
+    // AQUÍ ESTÁ LA FUNCIÓN REESTRUCTURADA E INTEGRADA CON GLUCOSA + HRV
     function actualizarExplicacionFisiologica(analisis, latestRecord) {
         const box = document.getElementById('physioExplanation');
         const recText = document.getElementById('recommendationText');
+        
+        // 1. Renderizar Métricas de Glucosa Matutina
+        const glucosa = latestRecord.glucosa_basal_mgdl;
+        const glucosaValEl = document.getElementById('atletaGlucosaValor');
+        const glucosaBadgeEl = document.getElementById('atletaGlucosaBadge');
+
+        if (glucosa) {
+            glucosaValEl.innerText = glucosa;
+            if (glucosa < 100) {
+                glucosaBadgeEl.innerText = "Óptimo";
+                glucosaBadgeEl.className = "px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-400";
+            } else if (glucosa <= 125) {
+                glucosaBadgeEl.innerText = "Elevado";
+                glucosaBadgeEl.className = "px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 text-amber-400";
+            } else {
+                glucosaBadgeEl.innerText = "Alerta";
+                glucosaBadgeEl.className = "px-2 py-0.5 text-xs font-bold rounded-full bg-rose-500/20 text-rose-400";
+            }
+        } else {
+            glucosaValEl.innerText = "--";
+            glucosaBadgeEl.innerText = "Sin Registro";
+        }
 
         if (analisis.error) {
             box.innerHTML = `<p class="text-gray-400 text-xs">${analisis.msg}</p>`;
@@ -272,31 +276,37 @@ async function loadDataForAthlete(athleteName) {
             return;
         }
 
+        // 2. Construcción del diagnóstico integrado (HRV + Glucosa)
         let textoHrv = "";
-        let textoPulso = `Tu frecuencia cardíaca basal amaneció en <strong>${analisis.ultPulso} BPM</strong>. `;
-
         if (analisis.estaEnCaida) {
-            textoHrv = `Tu HRV de hoy marcó <strong>${analisis.ultHRV} ms</strong>. Aunque se mantiene dentro de tu franja funcional, <strong>muestra una tendencia descendente respecto a tu promedio basal habitual (${analisis.promedioBasal} ms)</strong>. Esto refleja que tu <em>Sistema Nervioso Parasimpático</em> está acumulando la fatiga de las sesiones recientes.`;
+            textoHrv = `HRV en <strong>${analisis.ultHRV} ms</strong> (tendencia a la baja respecto a tu línea base de ${analisis.promedioBasal} ms). Hay acumulación de fatiga.`;
         } else {
-            textoHrv = `<strong class="text-emerald-400">Tu Variabilidad (HRV) se mantiene fuerte en ${analisis.ultHRV} ms (por encima de tu promedio de ${analisis.promedioBasal} ms).</strong> Tu sistema nervioso autónomo mantiene una excelente plasticidad.`;
+            textoHrv = `HRV fuerte en <strong>${analisis.ultHRV} ms</strong> (por encima de tu promedio de ${analisis.promedioBasal} ms). Tu sistema autónomo presenta buena plasticidad.`;
+        }
+
+        let textoGlucosaIntegrado = "";
+        if (glucosa && glucosa >= 100 && analisis.estaEnCaida) {
+            textoGlucosaIntegrado = " Se observa una ligera elevación glucémica junto al descenso de HRV, lo que sugiere estrés metabólico o cena tardía rica en carbohidratos.";
+        } else if (glucosa && glucosa < 100) {
+            textoGlucosaIntegrado = " Tu glucosa basal en ayunas está en rango óptimo, garantizando buena flexibilidad metabólica.";
         }
 
         box.innerHTML = `
-            <div class="bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
-                <p class="text-xs text-gray-300 leading-relaxed">${textoHrv}</p>
+            <div class="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800">
+                <p class="text-xs text-gray-300 leading-relaxed">🫀 ${textoHrv}</p>
             </div>
-            <div class="bg-zinc-900/80 p-3.5 rounded-xl border border-zinc-800">
-                <p class="text-xs text-gray-300 leading-relaxed">${textoPulso}Monitorear la interacción entre tu pulso y la variabilidad permite ajustar la carga antes de que aparezcan molestias o sobreentrenamiento.</p>
+            <div class="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800">
+                <p class="text-xs text-gray-300 leading-relaxed">🩸 ${textoGlucosaIntegrado}</p>
             </div>
         `;
 
-        // Sugerencias Alineadas con la Calibración
+        // 3. Recomendación Diaria
         if (analisis.score >= 85) {
-            recText.innerText = "Día ideal para buscar registros máximos, entrenamiento de alta intensidad o sesiones técnicamente complejas.";
+            recText.innerText = "Día ideal para buscar registros máximos o entrenamientos de alta intensidad.";
         } else if (analisis.score >= 65) {
-            recText.innerText = "Reduce el volumen total entre un 20% y 30%. Enfócate en ejecuciones técnicas impecables sin llegar al fallo agotador.";
+            recText.innerText = "Reduce el volumen total un 20%-30%. Enfócate en calidad técnica sin agotar reservas.";
         } else {
-            recText.innerText = "Prioriza regeneración: movilidad articular suave, caminata liviana, hidratación profunda y descanso de calidad.";
+            recText.innerText = "Prioriza regeneración: movilidad articular suave, hidratación y descanso de calidad.";
         }
     }
 
@@ -314,40 +324,28 @@ async function loadDataForAthlete(athleteName) {
         }
 
         const mostrarSWC = !analisis.error;
-        const valMin = mostrarSWC ? Number(analisis.swcMin) : null;
-        const valMax = mostrarSWC ? Number(analisis.swcMax) : null;
 
         athleteChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: 'Tu HRV (ms)',
-                        data: hrvValues,
-                        borderColor: '#00adb5',
-                        backgroundColor: 'rgba(0, 173, 181, 0.15)',
-                        pointBackgroundColor: '#00adb5',
-                        pointRadius: 6,
-                        pointHoverRadius: 8,
-                        tension: 0.3,
-                        fill: true
-                    }
-                ]
+                datasets: [{
+                    label: 'Tu HRV (ms)',
+                    data: hrvValues,
+                    borderColor: '#00adb5',
+                    backgroundColor: 'rgba(0, 173, 181, 0.15)',
+                    pointBackgroundColor: '#00adb5',
+                    pointRadius: 5,
+                    tension: 0.3,
+                    fill: true
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#00adb5', font: { weight: 'bold' } },
-                        title: { display: true, text: 'HRV (ms)', color: '#00adb5' }
-                    },
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#888' }
-                    }
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#00adb5' } },
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }
                 },
                 plugins: {
                     legend: { display: false },
@@ -355,18 +353,11 @@ async function loadDataForAthlete(athleteName) {
                         annotations: {
                             boxSWC: {
                                 type: 'box',
-                                yMin: valMin,
-                                yMax: valMax,
+                                yMin: Number(analisis.swcMin),
+                                yMax: Number(analisis.swcMax),
                                 backgroundColor: 'rgba(16, 185, 129, 0.08)',
                                 borderColor: 'rgba(16, 185, 129, 0.3)',
-                                borderWidth: 1,
-                                label: {
-                                    display: true,
-                                    content: 'Tu Zona Óptima (SWC)',
-                                    position: 'start',
-                                    color: 'rgba(16, 185, 129, 0.8)',
-                                    font: { size: 10, weight: 'bold' }
-                                }
+                                borderWidth: 1
                             }
                         }
                     } : {}
