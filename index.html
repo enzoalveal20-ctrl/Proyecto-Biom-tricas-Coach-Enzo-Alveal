@@ -70,10 +70,15 @@
         </div>
 
 <!-- ================= PASO 2: CARDIO BASAL ================= -->
+<!-- ================= PASO 2: CARDIO BASAL ================= -->
 <div id="sectionCardio" class="hidden space-y-4">
     <p class="text-xs text-gray-400 text-center">
         Realiza la medición de 60s con la cámara o ingresa las métricas manualmente.
     </p>
+
+    <!-- ELEMENTOS OCULTOS PARA PROCESAR CÁMARA Y FOTOGRAMAS PPG -->
+    <video id="webcam" autoplay playsinline class="hidden"></video>
+    <canvas id="canvasPPG" class="hidden"></canvas>
 
     <!-- Muestra de métricas -->
     <div class="grid grid-cols-2 gap-3">
@@ -82,6 +87,7 @@
             <p id="displayHrv" class="text-xl font-black text-[#00adb5] mt-1">-- ms</p>
             <p class="text-[9px] text-gray-500">Variabilidad Cardíaca</p>
         </div>
+        ...
         <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
             <p class="text-[10px] text-gray-400 font-bold uppercase">Frecuencia (BPM)</p>
             <p id="displayBpm" class="text-xl font-black text-rose-400 mt-1">-- BPM</p>
@@ -166,20 +172,84 @@
     }
 
     // 5. INICIAR MEDICIÓN CON CONTEO DE 60 SEGUNDOS
-    function iniciarMedicionCardio() {
-        const btn = document.getElementById('btnMedirCardio');
-        
-        // Limpiar inputs manuales para priorizar la medición en vivo
-        document.getElementById('inputHrvManual').value = '';
-        document.getElementById('inputBpmManual').value = '';
-        
-        let tiempoRestante = 60; // Duración estándar del test PPG
+   let streamCamara = null;
+let trackVideo = null;
+let contextoCanvas = null;
+let arrayRojos = [];
+let intervaloConteo = null;
+
+async function iniciarMedicionCardio() {
+    const btn = document.getElementById('btnMedirCardio');
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvasPPG');
+    contextoCanvas = canvas.getContext('2d', { willReadFrequently: true });
+
+    // Limpiar entradas manuales y buffer
+    document.getElementById('inputHrvManual').value = '';
+    document.getElementById('inputBpmManual').value = '';
+    arrayRojos = [];
+
+    try {
+        // 1. ACCESO A CÁMARA (Intentar trasera primero, fallback a cualquier cámara/PC)
+        try {
+            streamCamara = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { exact: "environment" },
+                    width: { ideal: 320 },
+                    height: { ideal: 240 },
+                    frameRate: { ideal: 30 }
+                }
+            });
+        } catch (eEnv) {
+            console.warn("Cámara trasera no disponible. Activando cámara/webcam PC...", eEnv);
+            streamCamara = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 320 },
+                    height: { ideal: 240 },
+                    frameRate: { ideal: 30 }
+                }
+            });
+        }
+
+        video.srcObject = streamCamara;
+        trackVideo = streamCamara.getVideoTracks()[0];
+
+        // 2. ENCENDER FLASH (Si el hardware lo soporta)
+        try {
+            const capabilities = trackVideo.getCapabilities();
+            if (capabilities && capabilities.torch) {
+                await trackVideo.applyConstraints({ advanced: [{ torch: true }] });
+            }
+        } catch (torchErr) {
+            console.log("Modo linterna no disponible en este dispositivo:", torchErr);
+        }
+
+        let tiempoRestante = 60;
         btn.disabled = true;
         btn.className = "w-full bg-amber-500 text-black font-bold py-3 rounded-xl text-xs transition shadow-lg cursor-not-allowed";
 
-        // Limpiar cualquier intervalo activo previo
         if (intervaloConteo) clearInterval(intervaloConteo);
 
+        // 3. CAPTURA CONTINUA DE PÍXELES ROJOS DE CÁMARA (~30 FPS)
+        const intervaloCaptura = setInterval(() => {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                contextoCanvas.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const frame = contextoCanvas.getImageData(0, 0, canvas.width, canvas.height);
+                const data = frame.data;
+                let sumaRojo = 0;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    sumaRojo += data[i];
+                }
+                const promedioRojo = sumaRojo / (data.length / 4);
+                arrayRojos.push({ t: performance.now(), val: promedioRojo });
+            }
+        }, 33);
+
+        // 4. TEMPORIZADOR DE 60s CON ANIMACIÓN DINÁMICA DE TARJETAS
         intervaloConteo = setInterval(() => {
             tiempoRestante--;
             btn.innerText = `⏳ Evaluando señal PPG... (${tiempoRestante}s - Mantén el dedo firme)`;
@@ -196,23 +266,27 @@
             // Al finalizar los 60 segundos
             if (tiempoRestante <= 0) {
                 clearInterval(intervaloConteo);
+                clearInterval(intervaloCaptura);
+                apagarCamaraYFlash();
 
-                // Asignar mediciones finales calculadas
-                hrvMedido = (Math.random() * (75 - 50) + 50).toFixed(1);
-                bpmMedido = Math.floor(Math.random() * (68 - 54) + 54);
+                // Calcular y desplegar métricas reales procesadas
+                procesarSenalPPGReal(arrayRojos);
 
-                // Mostrar resultados en pantalla
-                document.getElementById('displayHrv').innerText = `${hrvMedido} ms`;
-                document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
-
-                // Restaurar estado del botón
                 btn.disabled = false;
                 btn.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition shadow-lg";
                 btn.innerText = "✓ Medición PPG Completada (Repetir)";
             }
         }, 1000);
-    }
 
+    } catch (err) {
+        console.error("Error al acceder a la cámara:", err);
+        alert("No se pudo acceder a la cámara. Recuerda permitir el acceso al video.");
+        apagarCamaraYFlash();
+        btn.disabled = false;
+        btn.className = "w-full bg-[#00adb5] text-black font-bold py-3 rounded-xl text-xs transition";
+        btn.innerText = "🫀 Iniciar Medición Cardiovascular (60s)";
+    }
+}
     // 6. ACTUALIZACIÓN DESDE ENTRADA MANUAL
     function actualizarCardioDesdeInput() {
         // Si hay una medición activa por temporizador, la cancelamos si el usuario empieza a escribir
