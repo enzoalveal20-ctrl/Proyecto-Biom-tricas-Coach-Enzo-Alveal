@@ -30,7 +30,18 @@
 
         <!-- PANTALLA PRINCIPAL DE SCORE DEL DÍA -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
+     <div class="bg-[#181818] p-5 rounded-2xl border border-gray-800">
+    <div class="flex justify-between items-center mb-3">
+        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Glucosa Matutina</span>
+        <span id="atletaGlucosaBadge" class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-400">Normal</span>
+    </div>
+    <div class="flex items-baseline gap-2">
+        <span id="atletaGlucosaValor" class="text-3xl font-extrabold text-white">--</span>
+        <span class="text-sm font-semibold text-gray-400">mg/dL</span>
+    </div>
+    <p id="atletaGlucosaSubtexto" class="text-xs text-gray-400 mt-2">Medido en ayuno estricto.</p>
+</div>       
             <!-- TARJETA DEL PUNTAJE DE HOY (ALINEADO CON COACH) -->
             <div id="readinessCard" class="md:col-span-1 bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden transition-all duration-300">
                 <span class="text-xs font-black uppercase tracking-widest text-gray-400">Tu Puntaje de Hoy</span>
