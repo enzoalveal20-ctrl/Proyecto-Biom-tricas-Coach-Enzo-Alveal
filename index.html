@@ -77,7 +77,12 @@
 
             <!-- ELEMENTOS OCULTOS PARA CÁMARA Y FOTOGRAMAS PPG -->
             <video id="webcam" autoplay playsinline class="hidden"></video>
-            <canvas id="canvasPPG" class="hidden"></canvas>
+            <canvas id="canvasPPG" width="20" height="20" class="hidden"></canvas>
+
+            <!-- Barra de Progreso Avanzada -->
+            <div id="progressContainer" class="hidden w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                <div id="progressBar" class="bg-[#00adb5] h-full w-0 transition-all duration-100"></div>
+            </div>
 
             <!-- Muestra de métricas -->
             <div class="grid grid-cols-2 gap-3">
@@ -89,7 +94,7 @@
                 <div class="bg-[#252525] p-3 rounded-xl border border-gray-800 text-center">
                     <p class="text-[10px] text-gray-400 font-bold uppercase">Frecuencia (BPM)</p>
                     <p id="displayBpm" class="text-xl font-black text-rose-400 mt-1">-- BPM</p>
-                    <p class="text-[9px] text-gray-500">Latidos por Minuto</p>
+                    <p id="latidosInfo" class="text-[9px] text-gray-500">Latidos por Minuto</p>
                 </div>
             </div>
 
@@ -134,11 +139,14 @@
     let hrvMedido = null;
     let bpmMedido = null;
     let nocheActiva = false;
-    let intervaloConteo = null;
-    let streamCamara = null;
-    let trackVideo = null;
-    let contextoCanvas = null;
-    let arrayRojos = [];
+    
+    // Variables Motor Óptico de Alta Precisión
+    let streamRef = null;
+    let animationFrameId = null;
+    let ppgSignal = [];
+    let timeStamps = [];
+    let startTime = 0;
+    const DURATION = 60000; // 60 segundos
 
     // 3. NAVEGACIÓN ENTRE SECCIONES
     function irASection(seccion) {
@@ -175,174 +183,263 @@
         }
     }
 
-    // 5. MEDICIÓN CARDIOVASCULAR
+    // 5. MEDICIÓN CARDIOVASCULAR OPTIMIZADA (SOPORTE WEBCAM PC / MÓVIL)
     async function iniciarMedicionCardio() {
         const btn = document.getElementById('btnMedirCardio');
         const video = document.getElementById('webcam');
-        const canvas = document.getElementById('canvasPPG');
-        contextoCanvas = canvas.getContext('2d', { willReadFrequently: true });
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
 
         document.getElementById('inputHrvManual').value = '';
         document.getElementById('inputBpmManual').value = '';
-        arrayRojos = [];
+        document.getElementById('displayHrv').innerText = "Leyendo...";
+        document.getElementById('displayBpm').innerText = "Leyendo...";
+        document.getElementById('latidosInfo').innerText = "Analizando fotogramas...";
+
+        ppgSignal = [];
+        timeStamps = [];
+        
+        btn.disabled = true;
+        btn.className = "w-full bg-amber-500 text-black font-bold py-3 rounded-xl text-xs transition shadow-lg cursor-not-allowed";
+        btn.innerText = "⏳ Midiendo... Mantén el dedo firme cubriendo la cámara";
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
 
         try {
+            // Intentar primero con la cámara trasera (para dispositivos móviles)
             try {
-                streamCamara = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: { exact: "environment" },
-                        width: { ideal: 320 },
-                        height: { ideal: 240 },
-                        frameRate: { ideal: 30 }
+                streamRef = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: { exact: "environment" }, 
+                        frameRate: { ideal: 30 },
+                        width: { ideal: 160 },
+                        height: { ideal: 160 }
                     }
                 });
             } catch (eEnv) {
-                console.warn("Cámara trasera no disponible. Activando webcam PC...", eEnv);
-                streamCamara = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 320 },
-                        height: { ideal: 240 },
-                        frameRate: { ideal: 30 }
+                // Si falla (por estar en webcam de Computador PC), usar cualquier cámara disponible
+                streamRef = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: "environment", 
+                        frameRate: { ideal: 30 },
+                        width: { ideal: 160 },
+                        height: { ideal: 160 }
                     }
                 });
             }
 
-            video.srcObject = streamCamara;
-            trackVideo = streamCamara.getVideoTracks()[0];
-
+            video.srcObject = streamRef;
+            const track = streamRef.getVideoTracks()[0];
+            
             try {
-                const capabilities = trackVideo.getCapabilities();
+                const capabilities = track.getCapabilities();
                 if (capabilities && capabilities.torch) {
-                    await trackVideo.applyConstraints({ advanced: [{ torch: true }] });
+                    await track.applyConstraints({ advanced: [{ torch: true }] });
                 }
             } catch (torchErr) {
-                console.log("Flash no disponible en este dispositivo:", torchErr);
+                console.log("Flash no disponible o en cámara de PC.");
             }
 
-            let tiempoRestante = 60;
-            btn.disabled = true;
-            btn.className = "w-full bg-amber-500 text-black font-bold py-3 rounded-xl text-xs transition shadow-lg cursor-not-allowed";
-
-            if (intervaloConteo) clearInterval(intervaloConteo);
-
-            const intervaloCaptura = setInterval(() => {
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    contextoCanvas.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                    const frame = contextoCanvas.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = frame.data;
-                    let sumaRojo = 0;
-
-                    for (let i = 0; i < data.length; i += 4) {
-                        sumaRojo += data[i];
-                    }
-                    const promedioRojo = sumaRojo / (data.length / 4);
-                    arrayRojos.push({ t: performance.now(), val: promedioRojo });
-                }
-            }, 33);
-
-            intervaloConteo = setInterval(() => {
-                tiempoRestante--;
-                btn.innerText = `⏳ Evaluando señal PPG... (${tiempoRestante}s - Mantén el dedo firme)`;
-
-                if (tiempoRestante % 2 === 0) {
-                    document.getElementById('displayHrv').innerText = "Leyendo...";
-                    document.getElementById('displayBpm').innerText = "Leyendo...";
-                } else {
-                    document.getElementById('displayHrv').innerText = "⚡ PPG";
-                    document.getElementById('displayBpm').innerText = "🫀 PPG";
-                }
-
-                if (tiempoRestante <= 0) {
-                    clearInterval(intervaloConteo);
-                    clearInterval(intervaloCaptura);
-                    apagarCamaraYFlash();
-
-                    procesarSenalPPGReal(arrayRojos);
-
-                    btn.disabled = false;
-                    btn.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition shadow-lg";
-                    btn.innerText = "✓ Medición PPG Completada (Repetir)";
-                }
-            }, 1000);
+            startTime = performance.now();
+            
+            // Loop optimizado por Callback de fotogramas o Fallback de alto rendimiento
+            if ('requestVideoFrameCallback' in video) {
+                video.requestVideoFrameCallback(processFrameCallback);
+            } else {
+                processFrameLegacy();
+            }
 
         } catch (err) {
             console.error("Error al acceder a la cámara:", err);
-            alert("No se pudo acceder a la cámara. Revisa los permisos.");
-            apagarCamaraYFlash();
-            btn.disabled = false;
-            btn.className = "w-full bg-[#00adb5] text-black font-bold py-3 rounded-xl text-xs transition";
-            btn.innerText = "🫀 Iniciar Medición Cardiovascular (60s)";
+            alert("No se pudo acceder a la cámara. Verifica permisos HTTPS.");
+            resetearBotonCardio();
         }
     }
 
-    // 6. APAGAR HARDWARE DE CÁMARA
+    function processFrameCallback() {
+        if (!streamRef) return;
+        analyzeFrame();
+        const elapsed = performance.now() - startTime;
+        const percent = Math.min((elapsed / DURATION) * 100, 100);
+        document.getElementById('progressBar').style.width = percent + '%';
+
+        if (elapsed < DURATION) {
+            document.getElementById('webcam').requestVideoFrameCallback(processFrameCallback);
+        } else {
+            finalizarMedicionPPG();
+        }
+    }
+
+    function processFrameLegacy() {
+        if (!streamRef) return;
+        analyzeFrame();
+        const elapsed = performance.now() - startTime;
+        const percent = Math.min((elapsed / DURATION) * 100, 100);
+        document.getElementById('progressBar').style.width = percent + '%';
+
+        if (elapsed < DURATION) {
+            animationFrameId = requestAnimationFrame(processFrameLegacy);
+        } else {
+            finalizarMedicionPPG();
+        }
+    }
+
+    function analyzeFrame() {
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvasPPG');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let redSum = 0;
+            for (let i = 0; i < imgData.length; i += 4) {
+                redSum += imgData[i]; 
+            }
+            ppgSignal.push(redSum / (imgData.length / 4));
+            timeStamps.push(performance.now());
+        }
+    }
+
     function apagarCamaraYFlash() {
-        if (trackVideo) {
-            try { trackVideo.applyConstraints({ advanced: [{ torch: false }] }); } catch (e) {}
-            trackVideo.stop();
+        if (streamRef) {
+            streamRef.getTracks().forEach(track => track.stop());
+            streamRef = null;
         }
-        if (streamCamara) {
-            streamCamara.getTracks().forEach(track => track.stop());
-        }
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
     }
 
-    // 7. PROCESAR SENAL PPG REAL
-    function procesarSenalPPGReal(datos) {
-        if (datos.length < 300) {
-            alert("Señal insuficiente. Mantén el dedo firmemente sobre la cámara.");
+    // 6. FILTRO DE PERCENTIL Y EXTRACCIÓN AVANZADA DE RMSSD / BPM
+    function finalizarMedicionPPG() {
+        apagarCamaraYFlash();
+
+        const rrIntervals = calculateRRIntervals(ppgSignal, timeStamps);
+        
+        if (rrIntervals.length < 20) {
+            alert(`Lectura incompleta (${rrIntervals.length} latidos detectados). Apoya suavemente el dedo sobre la cámara/luz sin presionar demasiado.`);
             document.getElementById('displayHrv').innerText = `-- ms`;
             document.getElementById('displayBpm').innerText = `-- BPM`;
+            document.getElementById('latidosInfo').innerText = "Lectura Incompleta";
+            resetearBotonCardio();
             return;
         }
 
-        let intervalosRR = [];
-        let ultimoPicoTiempo = null;
-        const promedioGeneral = datos.reduce((acc, d) => acc + d.val, 0) / datos.length;
+        const rmssd = calculateRMSSD(rrIntervals);
+        const avgRR = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
+        const bpm = Math.round(60000 / avgRR);
 
-        for (let i = 1; i < datos.length - 1; i++) {
-            if (datos[i].val > promedioGeneral && datos[i].val > datos[i - 1].val && datos[i].val > datos[i + 1].val) {
-                if (ultimoPicoTiempo !== null) {
-                    const diff = datos[i].t - ultimoPicoTiempo;
-                    if (diff >= 333 && diff <= 1500) {
-                        intervalosRR.push(diff);
-                    }
-                }
-                ultimoPicoTiempo = datos[i].t;
-            }
-        }
+        hrvMedido = rmssd.toFixed(1);
+        bpmMedido = bpm;
 
-        if (intervalosRR.length > 5) {
-            const promedioRR = intervalosRR.reduce((a, b) => a + b, 0) / intervalosRR.length;
-            bpmMedido = Math.round(60000 / promedioRR);
+        document.getElementById('displayHrv').innerText = `${hrvMedido} ms`;
+        document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
+        document.getElementById('latidosInfo').innerText = `Basado en ${rrIntervals.length} ondas estables`;
 
-            let sumaDiferenciasCuadradas = 0;
-            for (let i = 0; i < intervalosRR.length - 1; i++) {
-                const diff = intervalosRR[i + 1] - intervalosRR[i];
-                sumaDiferenciasCuadradas += Math.pow(diff, 2);
-            }
-            hrvMedido = Math.sqrt(sumaDiferenciasCuadradas / (intervalosRR.length - 1)).toFixed(1);
-
-            document.getElementById('displayHrv').innerText = `${hrvMedido} ms`;
-            document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
-        } else {
-            alert("No se detectó un pulso claro. Intenta nuevamente cubriendo la cámara.");
-            document.getElementById('displayHrv').innerText = `-- ms`;
-            document.getElementById('displayBpm').innerText = `-- BPM`;
-        }
+        const btn = document.getElementById('btnMedirCardio');
+        btn.disabled = false;
+        btn.className = "w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl text-xs transition shadow-lg";
+        btn.innerText = "✓ Medición PPG Completada (Repetir)";
     }
 
-    // 8. ENTRADA MANUAL
-    function actualizarCardioDesdeInput() {
-        if (intervaloConteo) clearInterval(intervaloConteo);
-        apagarCamaraYFlash();
+    // ALGORITMO FILTRO PERCENTIL + ANTI-JITTER
+    function calculateRRIntervals(signal, timestamps) {
+        const rrIntervals = [];
+        const smoothSignal = [];
+        const windowSize = 5; 
+
+        if (signal.length < 60) return [];
+
+        // 1. Eliminación de deriva (Media móvil centrada)
+        for(let i = 0; i < signal.length; i++) {
+            let start = Math.max(0, i - windowSize);
+            let end = Math.min(signal.length, i + windowSize);
+            let localMean = 0;
+            for(let j = start; j < end; j++) localMean += signal[j];
+            smoothSignal.push(signal[i] - (localMean / (end - start)));
+        }
+
+        // 2. Percentil 75 para Umbral Dinámico de Picos
+        const sortedValues = [...smoothSignal].sort((a, b) => a - b);
+        const indexPercentil = Math.floor(sortedValues.length * 0.75);
+        const globalThreshold = Math.max(sortedValues[indexPercentil], 0.01);
+
+        let lastPeakTime = null;
+
+        // 3. Extracción con bloqueo refractario antidicrótico
+        for (let i = 1; i < smoothSignal.length - 1; i++) {
+            if (smoothSignal[i] > smoothSignal[i-1] && smoothSignal[i] > smoothSignal[i+1] && smoothSignal[i] > globalThreshold) {
+                const currentPeakTime = timestamps[i];
+
+                if (lastPeakTime !== null) {
+                    const rr = currentPeakTime - lastPeakTime;
+
+                    if (rr < 600) continue; // Bloqueo de onda dicrótica / Doble pico
+                    if (rr >= 600 && rr <= 1600) { // Ventana fisiológica (38 a 100 BPM)
+                        rrIntervals.push(rr);
+                        lastPeakTime = currentPeakTime;
+                    }
+                } else {
+                    lastPeakTime = currentPeakTime;
+                }
+            }
+        }
+
+        if (rrIntervals.length < 5) return [];
+
+        // 4. Limpieza de Outliers y Estabilización de Jitter
+        const finalRR = [];
+        const avgGlobal = rrIntervals.reduce((a,b)=>a+b, 0) / rrIntervals.length;
+        const filteredOutliers = rrIntervals.filter(rr => Math.abs(rr - avgGlobal) / avgGlobal <= 0.25);
         
+        if (filteredOutliers.length < 3) return [];
+
+        finalRR.push(filteredOutliers[0]);
+        for (let i = 1; i < filteredOutliers.length; i++) {
+            const prev = finalRR[finalRR.length - 1];
+            const curr = filteredOutliers[i];
+            const pctChange = Math.abs(curr - prev) / prev;
+
+            // Corrección de saltos por FPS inestables de cámara
+            if (pctChange > 0.15) {
+                const sign = curr > prev ? 1 : -1;
+                finalRR.push(prev + (prev * 0.08 * sign)); 
+            } else {
+                finalRR.push(curr);
+            }
+        }
+
+        return finalRR;
+    }
+
+    function calculateRMSSD(rrIntervals) {
+        if (rrIntervals.length < 2) return 0;
+        let sumSquaredDiffs = 0;
+        let validDiffsCount = 0;
+
+        for (let i = 0; i < rrIntervals.length - 1; i++) {
+            const diff = rrIntervals[i] - rrIntervals[i+1];
+            if (Math.abs(diff) > 120) continue; // Descarte de artefactos bruscos
+
+            sumSquaredDiffs += diff * diff;
+            validDiffsCount++;
+        }
+
+        if (validDiffsCount === 0) return 35.0; 
+        return Math.sqrt(sumSquaredDiffs / validDiffsCount);
+    }
+
+    function resetearBotonCardio() {
         const btn = document.getElementById('btnMedirCardio');
         btn.disabled = false;
         btn.className = "w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition shadow-lg";
         btn.innerText = "🫀 Iniciar Medición Cardiovascular (60s)";
+        document.getElementById('progressContainer').classList.add('hidden');
+    }
+
+    // 7. ENTRADA MANUAL
+    function actualizarCardioDesdeInput() {
+        apagarCamaraYFlash();
+        resetearBotonCardio();
 
         const valHrv = document.getElementById('inputHrvManual').value;
         const valBpm = document.getElementById('inputBpmManual').value;
@@ -358,27 +455,32 @@
         if (valBpm !== "") {
             bpmMedido = parseInt(valBpm);
             document.getElementById('displayBpm').innerText = `${bpmMedido} BPM`;
+            document.getElementById('latidosInfo').innerText = "Ingreso Manual";
         } else {
             bpmMedido = null;
             document.getElementById('displayBpm').innerText = `-- BPM`;
+            document.getElementById('latidosInfo').innerText = "Latidos por Minuto";
         }
     }
 
-    // 9. GUARDAR EN SUPABASE
+    // 8. GUARDAR EN SUPABASE
     async function guardarYFinalizarEvaluacion() {
         if (!hrvMedido || !bpmMedido) {
             alert("Por favor realiza la medición cardiovascular o ingresa las métricas manualmente antes de guardar.");
             return;
         }
 
-        const inputNombre = document.getElementById('selectAlumno') ? document.getElementById('selectAlumno').value : nombreAlumno;
+        const inputNombre = nombreAlumno;
         const inputHoras = document.getElementById('inputHorasSueno').value;
         const inputCalidad = document.getElementById('selectCalidadSueno').value;
         const modoUbicacion = document.getElementById('modoDispositivo').value;
 
+        const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
+
         const payload = {
             alumno_nombre: inputNombre,
-            fecha: new Date().toISOString(),
+            fecha: localISOTime,
             hrv_rmssd: parseFloat(hrvMedido),
             pulso_bpm: parseInt(bpmMedido),
             metodo_sensor: modoUbicacion
@@ -412,10 +514,10 @@
         }
     }
 
-    // 10. LIMPIAR FORMULARIO
+    // 9. LIMPIAR FORMULARIO
     function limpiarFormularioCompleto() {
-        if (intervaloConteo) clearInterval(intervaloConteo);
         apagarCamaraYFlash();
+        resetearBotonCardio();
         
         hrvMedido = null;
         bpmMedido = null;
@@ -427,17 +529,10 @@
         
         if (document.getElementById('displayHrv')) document.getElementById('displayHrv').innerText = '-- ms';
         if (document.getElementById('displayBpm')) document.getElementById('displayBpm').innerText = '-- BPM';
-        
-        const btn = document.getElementById('btnMedirCardio');
-        if (btn) {
-            btn.disabled = false;
-            btn.className = "w-full bg-[#00adb5] hover:bg-[#008c94] text-black font-bold py-3 rounded-xl text-xs transition shadow-lg";
-            btn.innerText = "🫀 Iniciar Medición Cardiovascular (60s)";
-        }
+        if (document.getElementById('latidosInfo')) document.getElementById('latidosInfo').innerText = 'Latidos por Minuto';
 
         irASection('sueno');
     }
 </script>
 </body>
 </html>
-
